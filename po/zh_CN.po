@@ -1,0 +1,15 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: fcitx5-input-counter 0.1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: zh_CN\n"
+
+msgid "Session input: "
+msgstr "本次输入："
+
+msgid " characters"
+msgstr " 字"
+
+msgid "Committed characters counted since Fcitx started; no text is retained."
+msgstr "统计 Fcitx 启动后上屏的字符，不保留输入内容。"
