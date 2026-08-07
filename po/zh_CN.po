@@ -1,15 +1,60 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: fcitx5-input-counter 0.1.0\n"
+"Project-Id-Version: fcitx5-input-counter 0.2.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Language: zh_CN\n"
 
-msgid "Session input: "
-msgstr "本次输入："
+msgid "Input statistics"
+msgstr "输入统计"
 
-msgid " characters"
-msgstr " 字"
+msgid ""
+"Committed characters are counted by hour and stored locally; no text is "
+"retained."
+msgstr "按小时统计上屏字符并本地保存，不保留输入内容。"
 
-msgid "Committed characters counted since Fcitx started; no text is retained."
-msgstr "统计 Fcitx 启动后上屏的字符，不保留输入内容。"
+msgid "Could not open the statistics database: %1"
+msgstr "无法打开统计数据库：%1"
+
+msgid "Overview"
+msgstr "概览"
+
+msgid "Total"
+msgstr "总计"
+
+msgid "Today"
+msgstr "今日"
+
+msgid "Last 24 hours"
+msgstr "近 24 小时"
+
+msgid "Last 7 days"
+msgstr "近 7 天"
+
+msgid "Last 30 days"
+msgstr "近 30 天"
+
+msgid "Database: %1"
+msgstr "数据库：%1"
+
+msgid "Refresh"
+msgstr "刷新"
+
+msgid "Clear all…"
+msgstr "清零…"
+
+msgid "Clear all statistics"
+msgstr "清空统计"
+
+msgid ""
+"This permanently deletes all recorded input statistics. Continue?"
+msgstr "将永久删除所有已记录的输入统计，是否继续？"
+
+msgid "Failed to clear statistics: %1"
+msgstr "清空统计失败：%1"
+
+msgid "Failed to read statistics: %1"
+msgstr "读取统计失败：%1"
+
+msgid "No data recorded yet"
+msgstr "暂无记录"

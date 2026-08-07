@@ -1,18 +1,21 @@
 // SPDX-License-Identifier: MIT
 
-//! Implements event handling, character counting, and menu updates.
+//! Implements event handling, character counting, and hourly persistence.
 
 #include "input_counter.h"
 
-#include <limits>
+#include <ctime>
+#include <exception>
 #include <stdexcept>
+#include <vector>
 
 #include <fcitx-utils/cutf8.h>
+#include <fcitx-utils/event.h>
 #include <fcitx-utils/i18n.h>
 #include <fcitx-utils/key.h>
 #include <fcitx-utils/keysym.h>
 #include <fcitx-utils/log.h>
-#include <fcitx-utils/stringutils.h>
+#include <fcitx-utils/misc.h>
 #include <fcitx-utils/utf8.h>
 #include <fcitx/addonmanager.h>
 #include <fcitx/event.h>
@@ -21,7 +24,16 @@
 #include <fcitx/statusarea.h>
 #include <fcitx/userinterfacemanager.h>
 
+#include "stats_db.h"
+
 namespace inputcounter {
+
+namespace {
+
+/// How often pending counts are written to the database, in microseconds.
+constexpr std::uint64_t kFlushIntervalUsec = 60 * 1000 * 1000;
+
+} // namespace
 
 InputCounterAddon::InputCounterAddon(fcitx::AddonManager *manager)
     : instance_(manager == nullptr ? nullptr : manager->instance()) {
@@ -29,11 +41,22 @@ InputCounterAddon::InputCounterAddon(fcitx::AddonManager *manager)
     throw std::invalid_argument("inputcounter requires a live Fcitx instance");
   }
 
+  try {
+    db_ = std::make_unique<StatsDb>(statsDatabasePath());
+  } catch (const std::exception &error) {
+    FCITX_ERROR() << "inputcounter could not open the statistics database: "
+                  << error.what();
+  }
+
   action_.setIcon("view-statistics");
-  action_.setShortText(fcitx::stringutils::concat(_("Session input: "), count_,
-                                                  _(" characters")));
-  action_.setLongText(_("Committed characters counted since Fcitx "
-                        "started; no text is retained."));
+  action_.setShortText(_("Input statistics"));
+  action_.setLongText(_("Committed characters are counted by hour and stored "
+                        "locally; no text is retained."));
+  action_.connect<fcitx::SimpleAction::Activated>(
+      [this](fcitx::InputContext *) {
+        flush();
+        fcitx::startProcess({INPUT_COUNTER_VIEWER_PATH});
+      });
   if (!action_.registerAction("inputcounter",
                               &instance_->userInterfaceManager())) {
     throw std::runtime_error(
@@ -87,25 +110,45 @@ InputCounterAddon::InputCounterAddon(fcitx::AddonManager *manager)
           count(text);
         }
       });
+
+  flushEvent_ = instance_->eventLoop().addTimeEvent(
+      CLOCK_MONOTONIC, fcitx::now(CLOCK_MONOTONIC) + kFlushIntervalUsec,
+      kFlushIntervalUsec, [this](fcitx::EventSourceTime *, std::uint64_t) {
+        flush();
+        flushEvent_->setNextInterval(kFlushIntervalUsec);
+        return true;
+      });
 }
+
+InputCounterAddon::~InputCounterAddon() { flush(); }
 
 void InputCounterAddon::count(std::string_view text) {
   const auto added =
       text.empty() ? 0 : fcitx_utf8_strnlen_validated(text.data(), text.size());
-  if (added == fcitx::utf8::INVALID_LENGTH ||
-      added > std::numeric_limits<std::uint64_t>::max() - count_) {
-    FCITX_WARN() << "inputcounter ignored invalid or overflowing text";
+  if (added == fcitx::utf8::INVALID_LENGTH) {
+    FCITX_WARN() << "inputcounter ignored invalid text";
     return;
   }
 
-  count_ += added;
-  action_.setShortText(fcitx::stringutils::concat(_("Session input: "), count_,
-                                                  _(" characters")));
-  instance_->inputContextManager().foreach (
-      [this](fcitx::InputContext *inputContext) {
-        action_.update(inputContext);
-        return true;
-      });
+  const auto hour =
+      hourStartOf(static_cast<std::int64_t>(std::time(nullptr)));
+  pendingChars_[hour] += static_cast<std::uint64_t>(added);
+}
+
+void InputCounterAddon::flush() {
+  if (db_ == nullptr || pendingChars_.empty()) {
+    return;
+  }
+
+  try {
+    for (const auto &[hour, chars] : pendingChars_) {
+      db_->addChars(hour, chars);
+    }
+    pendingChars_.clear();
+  } catch (const std::exception &error) {
+    FCITX_WARN() << "inputcounter failed to persist statistics: "
+                 << error.what();
+  }
 }
 
 } // namespace inputcounter

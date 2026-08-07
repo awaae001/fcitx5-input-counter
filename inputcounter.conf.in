@@ -1,8 +1,8 @@
 [Addon]
 Name=Input Counter
 Name[zh_CN]=输入计数器
-Comment=Counts committed Unicode characters in memory
-Comment[zh_CN]=在内存中统计已上屏的 Unicode 字符
+Comment=Counts committed Unicode characters and stores hourly totals
+Comment[zh_CN]=统计已上屏的 Unicode 字符并按小时保存
 Category=Module
 Version=@PROJECT_VERSION@
 Library=inputcounter
