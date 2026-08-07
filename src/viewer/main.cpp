@@ -13,6 +13,9 @@ int main(int argc, char *argv[]) {
   std::setlocale(LC_ALL, "");
   bindtextdomain("fcitx5-input-counter", INPUT_COUNTER_LOCALEDIR);
   bind_textdomain_codeset("fcitx5-input-counter", "UTF-8");
+  // gettext() looks up the default domain; without this the translations
+  // above are never consulted.
+  textdomain("fcitx5-input-counter");
 
   QApplication app(argc, argv);
   QApplication::setApplicationName(

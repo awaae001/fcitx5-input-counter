@@ -8,8 +8,10 @@
 #include <cmath>
 
 #include <QLocale>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QPainterPath>
+#include <QToolTip>
 
 #include "i18n.h"
 
@@ -43,7 +45,9 @@ QString formatAxisValue(double value) {
 
 } // namespace
 
-BarChartWidget::BarChartWidget(QWidget *parent) : QWidget(parent) {}
+BarChartWidget::BarChartWidget(QWidget *parent) : QWidget(parent) {
+  setMouseTracking(true);
+}
 
 void BarChartWidget::setData(
     std::vector<std::pair<QString, std::uint64_t>> data) {
@@ -65,6 +69,7 @@ void BarChartWidget::paintEvent(QPaintEvent * /*event*/) {
       maxIt == data_.end() ? 0 : maxIt->second;
 
   if (data_.empty() || maxValue == 0) {
+    slotWidth_ = 0.0;
     painter.setPen(palette().color(QPalette::PlaceholderText));
     painter.drawText(rect(), Qt::AlignCenter, IC_("No data recorded yet"));
     return;
@@ -85,8 +90,11 @@ void BarChartWidget::paintEvent(QPaintEvent * /*event*/) {
                     width() - leftMargin - kRightMargin,
                     height() - kTopMargin - kBottomMargin);
   if (plot.width() <= 0 || plot.height() <= 0) {
+    slotWidth_ = 0.0;
     return;
   }
+  plotRect_ = plot;
+  slotWidth_ = plot.width() / static_cast<int>(data_.size());
 
   // Horizontal grid lines with axis value labels.
   painter.setPen(palette().color(QPalette::Text));
@@ -104,32 +112,41 @@ void BarChartWidget::paintEvent(QPaintEvent * /*event*/) {
         Qt::AlignRight | Qt::AlignVCenter, formatAxisValue(value));
   }
 
-  // Baseline.
+  // Baseline and left axis.
   painter.setPen(QPen(palette().color(QPalette::Dark), 1));
   painter.drawLine(QPointF(plot.left(), plot.bottom()),
                    QPointF(plot.right(), plot.bottom()));
+  painter.drawLine(QPointF(plot.left(), plot.top()),
+                   QPointF(plot.left(), plot.bottom()));
 
   const auto count = static_cast<int>(data_.size());
-  const double slotWidth = plot.width() / count;
+  const double slotWidth = slotWidth_;
+  const auto barHeightFor = [axisMax, &plot](double value) {
+    return value > 0.0
+               ? std::max(2.0, value / axisMax * plot.height())
+               : 0.0;
+  };
   const double barWidth = std::max(2.0, slotWidth * 0.65);
   const auto maxLabels = std::max(1, static_cast<int>(plot.width()) / 36);
   const int labelEvery = std::max(1, (count + maxLabels - 1) / maxLabels);
 
   const QColor barColor = palette().color(QPalette::Highlight);
+  const QColor hoverColor = barColor.lighter(125);
   for (int i = 0; i < count; ++i) {
     const double value = static_cast<double>(data_[i].second);
     const double x =
         plot.left() + i * slotWidth + (slotWidth - barWidth) / 2.0;
 
     if (value > 0) {
-      const double barHeight = std::max(2.0, value / axisMax * plot.height());
+      const double barHeight = barHeightFor(value);
       const QRectF bar(x, plot.bottom() - barHeight, barWidth, barHeight);
+      const QColor color = i == hoverIndex_ ? hoverColor : barColor;
       if (barHeight > 8.0) {
         QPainterPath path;
         path.addRoundedRect(bar, 3.0, 3.0);
-        painter.fillPath(path, barColor);
+        painter.fillPath(path, color);
       } else {
-        painter.fillRect(bar, barColor);
+        painter.fillRect(bar, color);
       }
     }
 
@@ -144,6 +161,62 @@ void BarChartWidget::paintEvent(QPaintEvent * /*event*/) {
                        data_[i].first);
     }
   }
+
+  // Exact value above the hovered bar.
+  if (hoverIndex_ >= 0 && hoverIndex_ < count) {
+    const double value = static_cast<double>(data_[hoverIndex_].second);
+    const QString text = formatAxisValue(value);
+    const double slotX = plot.left() + hoverIndex_ * slotWidth;
+    const double barTop = plot.bottom() - barHeightFor(value);
+    QFont font = painter.font();
+    font.setBold(true);
+    painter.setFont(font);
+    const int textWidth =
+        painter.fontMetrics().horizontalAdvance(text) + 4;
+    const double textX = std::clamp(
+        slotX + (slotWidth - textWidth) / 2.0, plot.left(),
+        plot.right() - textWidth);
+    const double textY =
+        std::max(plot.top(), barTop - metrics.height() - 2.0);
+    painter.setPen(palette().color(QPalette::Text));
+    painter.drawText(QRectF(textX, textY, textWidth, metrics.height()),
+                     Qt::AlignHCenter | Qt::AlignVCenter, text);
+  }
+}
+
+void BarChartWidget::mouseMoveEvent(QMouseEvent *event) {
+  int index = -1;
+  if (!data_.empty() && slotWidth_ > 0.0 &&
+      plotRect_.contains(event->position())) {
+    index = static_cast<int>((event->position().x() - plotRect_.left()) /
+                             slotWidth_);
+    index = std::clamp(index, 0, static_cast<int>(data_.size()) - 1);
+  }
+  if (index != hoverIndex_) {
+    hoverIndex_ = index;
+    update();
+  }
+  if (index >= 0) {
+    QToolTip::showText(
+        event->globalPosition().toPoint(),
+        QStringLiteral("%1: %2")
+            .arg(data_[index].first,
+                 QLocale().toString(
+                     static_cast<qulonglong>(data_[index].second))),
+        this);
+  } else {
+    QToolTip::hideText();
+  }
+  QWidget::mouseMoveEvent(event);
+}
+
+void BarChartWidget::leaveEvent(QEvent *event) {
+  if (hoverIndex_ != -1) {
+    hoverIndex_ = -1;
+    update();
+  }
+  QToolTip::hideText();
+  QWidget::leaveEvent(event);
 }
 
 } // namespace inputcounter

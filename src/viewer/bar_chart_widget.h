@@ -9,6 +9,7 @@
 #include <utility>
 #include <vector>
 
+#include <QRectF>
 #include <QSize>
 #include <QString>
 #include <QWidget>
@@ -29,9 +30,15 @@ public:
 
 protected:
   void paintEvent(QPaintEvent *event) override;
+  void mouseMoveEvent(QMouseEvent *event) override;
+  void leaveEvent(QEvent *event) override;
 
 private:
   std::vector<std::pair<QString, std::uint64_t>> data_;
+  int hoverIndex_ = -1;
+  // Last painted plot geometry, reused for hover hit-testing.
+  QRectF plotRect_;
+  double slotWidth_ = 0.0;
 };
 
 } // namespace inputcounter
