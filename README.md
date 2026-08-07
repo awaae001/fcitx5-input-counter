@@ -5,9 +5,9 @@ totals in a local SQLite database. It does not retain committed text.
 
 The addon adds an `Input statistics` button to the Fcitx status area. Clicking
 it opens a Qt viewer window that shows totals (total / today / last 24 hours /
-last 7 days) and a bar chart of the last 24 hours, 7 days, or 30 days. The
-viewer can also clear all recorded statistics. A Simplified Chinese
-translation is included.
+last 7 days) and a bar chart of the last 24 hours, 7 days, 30 days, 12 months,
+or all recorded years. The viewer can also clear all recorded statistics. A
+Simplified Chinese translation is included.
 
 ## Scope
 

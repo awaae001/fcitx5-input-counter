@@ -43,6 +43,8 @@ namespace inputcounter
       BarChartWidget &hours;
       BarChartWidget &week;
       BarChartWidget &month;
+      BarChartWidget &lastYear;
+      BarChartWidget &allTime;
     };
 
     QLabel *valueLabel(QWidget *parent)
@@ -101,10 +103,14 @@ namespace inputcounter
       auto *hours = new BarChartWidget(tabs);
       auto *week = new BarChartWidget(tabs);
       auto *month = new BarChartWidget(tabs);
+      auto *lastYear = new BarChartWidget(tabs);
+      auto *allTime = new BarChartWidget(tabs);
       tabs->addTab(hours, IC_("Last 24 hours"));
       tabs->addTab(week, IC_("Last 7 days"));
       tabs->addTab(month, IC_("Last 30 days"));
-      return {*tabs, *hours, *week, *month};
+      tabs->addTab(lastYear, IC_("Last 12 months"));
+      tabs->addTab(allTime, IC_("All time"));
+      return {*tabs, *hours, *week, *month, *lastYear, *allTime};
     }
 
   } // namespace
@@ -157,6 +163,8 @@ namespace inputcounter
             charts.hours,
             charts.week,
             charts.month,
+            charts.lastYear,
+            charts.allTime,
             *refreshButton,
             *clearButton,
             *refreshShortcut};

@@ -31,6 +31,10 @@ struct StatisticsSnapshot final {
   std::vector<std::pair<QString, std::uint64_t>> week;
   /// Thirty-day bars.
   std::vector<std::pair<QString, std::uint64_t>> month;
+  /// Twelve-month bars.
+  std::vector<std::pair<QString, std::uint64_t>> lastYear;
+  /// Yearly bars covering all recorded history.
+  std::vector<std::pair<QString, std::uint64_t>> allTime;
 };
 
 /// Returns the current Unix timestamp in seconds.

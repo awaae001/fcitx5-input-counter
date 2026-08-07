@@ -158,6 +158,16 @@ std::vector<HourlyCount> StatsDb::hourlySince(std::int64_t since) {
   return rows;
 }
 
+std::vector<HourlyCount> StatsDb::allHourly() {
+  Statement stmt(db_, "SELECT hour, chars FROM stats ORDER BY hour");
+  std::vector<HourlyCount> rows;
+  while (stmt.stepRow()) {
+    rows.push_back(
+        {stmt.columnInt64(0), static_cast<std::uint64_t>(stmt.columnInt64(1))});
+  }
+  return rows;
+}
+
 void StatsDb::reset() { execSql(db_, "DELETE FROM stats"); }
 
 } // namespace inputcounter

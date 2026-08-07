@@ -46,6 +46,8 @@ public:
   std::uint64_t charsSince(std::int64_t since);
   /// Returns hourly rows starting at or after the hour of since, ascending.
   std::vector<HourlyCount> hourlySince(std::int64_t since);
+  /// Returns every hourly row, ascending.
+  std::vector<HourlyCount> allHourly();
   /// Deletes all recorded statistics.
   void reset();
 

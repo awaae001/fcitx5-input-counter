@@ -10,6 +10,7 @@
 
 #include <QDateTime>
 #include <QLocale>
+#include <QTime>
 
 #include "../stats_db.h"
 
@@ -25,6 +26,7 @@ constexpr std::int64_t kDay = 24 * kHour;
 constexpr int kHours = 24;
 constexpr int kWeek = 7;
 constexpr int kMonth = 30;
+constexpr int kYearMonths = 12;
 
 std::int64_t dayStart(std::int64_t timestamp) {
   const auto time = static_cast<std::time_t>(timestamp);
@@ -41,9 +43,9 @@ std::uint64_t at(const Counts &counts, std::int64_t timestamp) {
   return it == counts.end() ? 0 : it->second;
 }
 
-Counts readHours(StatsDb &db, std::int64_t since) {
+Counts readAllHours(StatsDb &db) {
   Counts counts;
-  for (const auto &row : db.hourlySince(since)) {
+  for (const auto &row : db.allHourly()) {
     counts[row.hour] += row.chars;
   }
   return counts;
@@ -55,6 +57,33 @@ Counts sumDays(const Counts &hours) {
     days[dayStart(hour)] += chars;
   }
   return days;
+}
+
+std::int64_t monthStart(std::int64_t timestamp) {
+  const auto date = QDateTime::fromSecsSinceEpoch(timestamp).date();
+  return QDateTime(QDate(date.year(), date.month(), 1), QTime(0, 0))
+      .toSecsSinceEpoch();
+}
+
+Counts sumMonths(const Counts &hours) {
+  Counts months;
+  for (const auto &[hour, chars] : hours) {
+    months[monthStart(hour)] += chars;
+  }
+  return months;
+}
+
+std::int64_t yearStart(std::int64_t timestamp) {
+  const auto year = QDateTime::fromSecsSinceEpoch(timestamp).date().year();
+  return QDateTime(QDate(year, 1, 1), QTime(0, 0)).toSecsSinceEpoch();
+}
+
+Counts sumYears(const Counts &hours) {
+  Counts years;
+  for (const auto &[hour, chars] : hours) {
+    years[yearStart(hour)] += chars;
+  }
+  return years;
 }
 
 Bars hourBars(const Counts &counts, std::int64_t now) {
@@ -81,6 +110,31 @@ Bars dayBars(const Counts &counts, std::int64_t now, int count) {
   return bars;
 }
 
+Bars monthBars(const Counts &counts, std::int64_t now) {
+  Bars bars;
+  bars.reserve(kYearMonths);
+  const auto today = QDateTime::fromSecsSinceEpoch(now).date();
+  const QDate currentMonth(today.year(), today.month(), 1);
+  for (int offset = kYearMonths - 1; offset >= 0; --offset) {
+    const auto month = currentMonth.addMonths(-offset);
+    const auto start = QDateTime(month, QTime(0, 0)).toSecsSinceEpoch();
+    bars.emplace_back(month.toString(QStringLiteral("yyyy-MM")),
+                      at(counts, start));
+  }
+  return bars;
+}
+
+Bars yearBars(const Counts &counts) {
+  Bars bars;
+  bars.reserve(counts.size());
+  for (const auto &[start, chars] : counts) {
+    bars.emplace_back(
+        QDateTime::fromSecsSinceEpoch(start).toString(QStringLiteral("yyyy")),
+        chars);
+  }
+  return bars;
+}
+
 } // namespace
 
 std::int64_t nowSeconds() {
@@ -95,17 +149,21 @@ StatisticsSnapshot load(StatsDb &db, std::int64_t now) {
   const auto todayCount = db.charsSince(today);
   const auto last24Hours = db.charsSince(now - kHours * kHour);
   const auto last7Days = db.charsSince(today - (kWeek - 1) * kDay);
-  const auto hours = readHours(db, now - kMonth * kDay);
-  const auto days = sumDays(hours);
+  const auto allHours = readAllHours(db);
+  const auto days = sumDays(allHours);
+  const auto months = sumMonths(allHours);
+  const auto years = sumYears(allHours);
 
   return {
       total,
       todayCount,
       last24Hours,
       last7Days,
-      hourBars(hours, now),
+      hourBars(allHours, now),
       dayBars(days, now, kWeek),
       dayBars(days, now, kMonth),
+      monthBars(months, now),
+      yearBars(years),
   };
 }
 

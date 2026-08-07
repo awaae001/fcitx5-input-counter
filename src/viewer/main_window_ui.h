@@ -32,6 +32,10 @@ namespace inputcounter
     BarChartWidget &weekChart;
     /// Thirty-day chart.
     BarChartWidget &monthChart;
+    /// Twelve-month chart.
+    BarChartWidget &lastYearChart;
+    /// All-time chart.
+    BarChartWidget &allTimeChart;
     /// Manual refresh button.
     QPushButton &refreshButton;
     /// Clear-data button.

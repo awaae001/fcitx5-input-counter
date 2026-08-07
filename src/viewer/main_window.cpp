@@ -75,6 +75,8 @@ namespace inputcounter
       ui_->hoursChart.setData(std::move(data.hours));
       ui_->weekChart.setData(std::move(data.week));
       ui_->monthChart.setData(std::move(data.month));
+      ui_->lastYearChart.setData(std::move(data.lastYear));
+      ui_->allTimeChart.setData(std::move(data.allTime));
     }
     catch (const std::exception &error)
     {

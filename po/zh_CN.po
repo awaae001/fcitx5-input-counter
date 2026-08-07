@@ -34,8 +34,11 @@ msgstr "近 7 天"
 msgid "Last 30 days"
 msgstr "近 30 天"
 
-msgid "Database: %1"
-msgstr "数据库：%1"
+msgid "Last 12 months"
+msgstr "过去一年"
+
+msgid "All time"
+msgstr "有史以来"
 
 msgid "Refresh"
 msgstr "刷新"
