@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Input Statistics
+Name[zh_CN]=输入统计
+Comment=Show hourly input statistics recorded by the fcitx5 input counter addon
+Comment[zh_CN]=查看 fcitx5 输入计数器插件按小时记录的输入统计
+Exec=fcitx5-input-counter-viewer
+Icon=fcitx5-input-counter
+Terminal=false
+Categories=Utility;
+Keywords=input;statistics;fcitx5;

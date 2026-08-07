@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="keyLight" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f2f4f6"/>
+      <stop offset="1" stop-color="#d0d7de"/>
+    </linearGradient>
+    <linearGradient id="keyBlue" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5bc0f8"/>
+      <stop offset="1" stop-color="#1d99f3"/>
+    </linearGradient>
+  </defs>
+  <!-- back keycap: Latin -->
+  <rect x="16" y="34" width="54" height="46" rx="10" fill="#000000" opacity="0.35"/>
+  <rect x="16" y="26" width="54" height="46" rx="10" fill="url(#keyLight)"/>
+  <text x="43" y="60" font-family="sans-serif" font-weight="bold" font-size="32" text-anchor="middle" fill="#2e3237">A</text>
+  <!-- front keycap: CJK -->
+  <rect x="58" y="70" width="58" height="50" rx="10" fill="#000000" opacity="0.35"/>
+  <rect x="58" y="62" width="58" height="50" rx="10" fill="url(#keyBlue)"/>
+  <text x="87" y="99" font-family="sans-serif" font-weight="bold" font-size="34" text-anchor="middle" fill="#ffffff">文</text>
+</svg>

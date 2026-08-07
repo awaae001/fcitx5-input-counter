@@ -66,4 +66,15 @@ install(
     DESTINATION "${FCITX_INSTALL_PKGDATADIR}/addon"
 )
 
+# Desktop entry + icon so Wayland compositors can resolve the viewer's
+# window icon via its app id (fcitx5-input-counter-viewer).
+install(
+    FILES data/fcitx5-input-counter-viewer.desktop
+    DESTINATION "${FCITX_INSTALL_DATADIR}/applications"
+)
+install(
+    FILES data/fcitx5-input-counter.svg
+    DESTINATION "${FCITX_INSTALL_DATADIR}/icons/hicolor/scalable/apps"
+)
+
 add_subdirectory(po)
