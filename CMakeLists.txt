@@ -40,10 +40,13 @@ target_compile_definitions(inputcounter PRIVATE
 set_target_properties(inputcounter PROPERTIES PREFIX "")
 
 add_executable(fcitx5-input-counter-viewer
+    src/viewer/bar_chart_renderer.cpp
     src/stats_db.cpp
     src/viewer/bar_chart_widget.cpp
     src/viewer/main.cpp
     src/viewer/main_window.cpp
+    src/viewer/main_window_ui.cpp
+    src/viewer/statistics_snapshot.cpp
 )
 target_include_directories(fcitx5-input-counter-viewer PRIVATE
     "${CMAKE_CURRENT_BINARY_DIR}")

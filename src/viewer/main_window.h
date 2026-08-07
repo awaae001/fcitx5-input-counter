@@ -9,34 +9,28 @@
 
 #include <QMainWindow>
 
-class QLabel;
+namespace inputcounter
+{
 
-namespace inputcounter {
+  class MainWindowUi;
+  class StatsDb;
 
-class BarChartWidget;
-class StatsDb;
+  /// Shows totals and trend charts backed by the statistics database.
+  class MainWindow final : public QMainWindow
+  {
+    Q_OBJECT
 
-/// Shows totals and trend charts backed by the statistics database.
-class MainWindow final : public QMainWindow {
-  Q_OBJECT
+  public:
+    explicit MainWindow(QWidget *parent = nullptr);
+    ~MainWindow() override;
 
-public:
-  explicit MainWindow(QWidget *parent = nullptr);
-  ~MainWindow() override;
+  private:
+    void refresh();
+    void confirmReset();
 
-private:
-  void refresh();
-  void confirmReset();
-
-  std::unique_ptr<StatsDb> db_;
-  QLabel *totalValue_ = nullptr;
-  QLabel *todayValue_ = nullptr;
-  QLabel *last24HoursValue_ = nullptr;
-  QLabel *last7DaysValue_ = nullptr;
-  BarChartWidget *hoursChart_ = nullptr;
-  BarChartWidget *weekChart_ = nullptr;
-  BarChartWidget *monthChart_ = nullptr;
-};
+    std::unique_ptr<StatsDb> db_;
+    std::unique_ptr<MainWindowUi> ui_;
+  };
 
 } // namespace inputcounter
 
