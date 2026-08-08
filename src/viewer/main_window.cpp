@@ -12,11 +12,15 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QShortcut>
+#include <QStackedWidget>
 #include <QString>
+#include <QTabBar>
 #include <QTimer>
 
 #include "../stats_db.h"
 #include "bar_chart_widget.h"
+#include "chart_range.h"
+#include "custom_range_dialog.h"
 #include "i18n.h"
 #include "main_window_ui.h"
 #include "statistics_snapshot.h"
@@ -26,7 +30,7 @@ namespace inputcounter
 
   MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
   {
-    setWindowTitle(IC_("Input statistics"));
+    setWindowTitle(IC_("Input Counter"));
 
     try
     {
@@ -47,6 +51,8 @@ namespace inputcounter
             &MainWindow::refresh);
     connect(&ui_->clearButton, &QPushButton::clicked, this,
             &MainWindow::confirmReset);
+    connect(&ui_->customButton, &QPushButton::clicked, this,
+            &MainWindow::editCustomRange);
 
     auto *timer = new QTimer(this);
     timer->setInterval(5000);
@@ -77,13 +83,41 @@ namespace inputcounter
       ui_->monthChart.setData(std::move(data.month));
       ui_->lastYearChart.setData(std::move(data.lastYear));
       ui_->allTimeChart.setData(std::move(data.allTime));
+      if (customRange_ != nullptr)
+      {
+        ui_->customChart.setData(load(*db_, *customRange_));
+      }
     }
     catch (const std::exception &error)
     {
-      QMessageBox::warning(this, IC_("Input statistics"),
+      QMessageBox::warning(this, IC_("Input Counter"),
                            QString(IC_("Failed to read statistics: %1"))
                                .arg(error.what()));
     }
+  }
+
+  void MainWindow::editCustomRange()
+  {
+    if (db_ == nullptr || ui_ == nullptr)
+    {
+      return;
+    }
+
+    const bool showingCustom =
+        ui_->chartStack.currentWidget() == &ui_->customChart;
+    auto selected = chooseCustomRange(*this, customRange_.get());
+    if (!selected.has_value())
+    {
+      ui_->customButton.setChecked(showingCustom);
+      return;
+    }
+
+    customRange_ =
+        std::make_unique<ChartRange>(std::move(selected).value());
+    ui_->chartTabs.setCurrentIndex(-1);
+    ui_->chartStack.setCurrentWidget(&ui_->customChart);
+    ui_->customButton.setChecked(true);
+    refresh();
   }
 
   void MainWindow::confirmReset()

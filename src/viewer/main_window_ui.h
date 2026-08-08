@@ -9,6 +9,8 @@ class QLabel;
 class QMainWindow;
 class QPushButton;
 class QShortcut;
+class QStackedWidget;
+class QTabBar;
 
 namespace inputcounter
 {
@@ -36,6 +38,14 @@ namespace inputcounter
     BarChartWidget &lastYearChart;
     /// All-time chart.
     BarChartWidget &allTimeChart;
+    /// Custom-range chart.
+    BarChartWidget &customChart;
+    /// Preset chart tabs shown at the left of the chart header.
+    QTabBar &chartTabs;
+    /// Stack containing preset and custom charts.
+    QStackedWidget &chartStack;
+    /// Opens the custom-range modal dialog.
+    QPushButton &customButton;
     /// Manual refresh button.
     QPushButton &refreshButton;
     /// Clear-data button.
@@ -44,7 +54,7 @@ namespace inputcounter
     QShortcut &refreshShortcut;
   };
 
-  /// Builds the unchanged viewer layout in window.
+  /// Builds the viewer layout in window.
   MainWindowUi buildUi(QMainWindow &window);
 
   /// Replaces window's contents with the database-open error message.

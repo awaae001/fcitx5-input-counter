@@ -49,7 +49,7 @@ InputCounterAddon::InputCounterAddon(fcitx::AddonManager *manager)
   }
 
   action_.setIcon("view-statistics");
-  action_.setShortText(_("Input statistics"));
+  action_.setShortText(_("Input Counter"));
   action_.setLongText(_("Committed characters are counted by hour and stored "
                         "locally; no text is retained."));
   action_.connect<fcitx::SimpleAction::Activated>(

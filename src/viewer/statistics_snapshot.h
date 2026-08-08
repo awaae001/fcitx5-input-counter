@@ -13,7 +13,11 @@
 
 namespace inputcounter {
 
+class ChartRange;
 class StatsDb;
+
+/// Labeled values displayed by a bar chart.
+using ChartBars = std::vector<std::pair<QString, std::uint64_t>>;
 
 /// Labeled values displayed by one main-window refresh.
 struct StatisticsSnapshot final {
@@ -27,8 +31,8 @@ struct StatisticsSnapshot final {
   std::uint64_t last7Days;
   /// Hourly bars.
   std::vector<std::pair<QString, std::uint64_t>> hours;
-  /// Seven-day bars.
-  std::vector<std::pair<QString, std::uint64_t>> week;
+  /// Seven-day bars aggregated at six-hour intervals.
+  ChartBars week;
   /// Thirty-day bars.
   std::vector<std::pair<QString, std::uint64_t>> month;
   /// Twelve-month bars.
@@ -42,6 +46,9 @@ std::int64_t nowSeconds();
 
 /// Reads and aggregates one display snapshot at now.
 StatisticsSnapshot load(StatsDb &db, std::int64_t now);
+
+/// Reads and aggregates bars for a validated custom range.
+ChartBars load(StatsDb &db, const ChartRange &range);
 
 /// Formats a count with the current locale.
 QString format(std::uint64_t value);

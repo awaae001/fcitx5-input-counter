@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-//! Implements the fixed main-window layout.
+//! Implements the main-window layout.
 
 #include "main_window_ui.h"
 
@@ -14,8 +14,9 @@
 #include <QMainWindow>
 #include <QPushButton>
 #include <QShortcut>
+#include <QStackedWidget>
 #include <QStyle>
-#include <QTabWidget>
+#include <QTabBar>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -39,12 +40,16 @@ namespace inputcounter
 
     struct Charts final
     {
-      QTabWidget &tabs;
+      QWidget &widget;
       BarChartWidget &hours;
       BarChartWidget &week;
       BarChartWidget &month;
       BarChartWidget &lastYear;
       BarChartWidget &allTime;
+      BarChartWidget &custom;
+      QTabBar &tabs;
+      QStackedWidget &stack;
+      QPushButton &customButton;
     };
 
     QLabel *valueLabel(QWidget *parent)
@@ -97,20 +102,57 @@ namespace inputcounter
 
     Charts buildCharts(QWidget *parent)
     {
-      auto *tabs = new QTabWidget(parent);
-      tabs->setDocumentMode(true);
+      auto *widget = new QWidget(parent);
+      auto *layout = new QVBoxLayout(widget);
+      layout->setContentsMargins(0, 0, 0, 0);
+      layout->setSpacing(0);
 
-      auto *hours = new BarChartWidget(tabs);
-      auto *week = new BarChartWidget(tabs);
-      auto *month = new BarChartWidget(tabs);
-      auto *lastYear = new BarChartWidget(tabs);
-      auto *allTime = new BarChartWidget(tabs);
-      tabs->addTab(hours, IC_("Last 24 hours"));
-      tabs->addTab(week, IC_("Last 7 days"));
-      tabs->addTab(month, IC_("Last 30 days"));
-      tabs->addTab(lastYear, IC_("Last 12 months"));
-      tabs->addTab(allTime, IC_("All time"));
-      return {*tabs, *hours, *week, *month, *lastYear, *allTime};
+      auto *header = new QHBoxLayout;
+      header->setContentsMargins(0, 0, 0, 0);
+      auto *tabs = new QTabBar(widget);
+      tabs->setDocumentMode(true);
+      tabs->setDrawBase(false);
+      tabs->setExpanding(false);
+      tabs->addTab(IC_("Last 24 hours"));
+      tabs->addTab(IC_("Last 7 days"));
+      tabs->addTab(IC_("Last 30 days"));
+      tabs->addTab(IC_("Last 12 months"));
+      tabs->addTab(IC_("All time"));
+
+      auto *customButton = new QPushButton(IC_("Custom"), widget);
+      customButton->setFlat(true);
+      customButton->setCheckable(true);
+      header->addWidget(tabs);
+      header->addStretch(1);
+      header->addWidget(customButton);
+      layout->addLayout(header);
+
+      auto *stack = new QStackedWidget(widget);
+      layout->addWidget(stack, 1);
+
+      auto *hours = new BarChartWidget(stack);
+      auto *week = new BarChartWidget(stack);
+      auto *month = new BarChartWidget(stack);
+      auto *lastYear = new BarChartWidget(stack);
+      auto *allTime = new BarChartWidget(stack);
+      auto *custom = new BarChartWidget(stack);
+      for (auto *chart : {hours, week, month, lastYear, allTime, custom})
+      {
+        stack->addWidget(chart);
+      }
+
+      QObject::connect(tabs, &QTabBar::currentChanged, stack,
+                       [stack, customButton](int index)
+                       {
+                         if (index >= 0)
+                         {
+                           stack->setCurrentIndex(index);
+                           customButton->setChecked(false);
+                         }
+                       });
+      tabs->setCurrentIndex(0);
+      return {*widget, *hours, *week, *month, *lastYear, *allTime,
+              *custom, *tabs, *stack, *customButton};
     }
 
   } // namespace
@@ -150,7 +192,7 @@ namespace inputcounter
                       refreshButton->sizeHint().width(),
                       clearButton->sizeHint().width()}));
     layout->addWidget(sideWidget, 0);
-    layout->addWidget(&charts.tabs, 1);
+    layout->addWidget(&charts.widget, 1);
 
     window.setCentralWidget(central);
     window.setMinimumSize(640, 360);
@@ -165,6 +207,10 @@ namespace inputcounter
             charts.month,
             charts.lastYear,
             charts.allTime,
+            charts.custom,
+            charts.tabs,
+            charts.stack,
+            charts.customButton,
             *refreshButton,
             *clearButton,
             *refreshShortcut};

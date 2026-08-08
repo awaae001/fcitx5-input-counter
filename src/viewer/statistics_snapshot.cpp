@@ -13,6 +13,7 @@
 #include <QTime>
 
 #include "../stats_db.h"
+#include "chart_range.h"
 
 namespace inputcounter {
 
@@ -25,6 +26,7 @@ constexpr std::int64_t kHour = 60 * 60;
 constexpr std::int64_t kDay = 24 * kHour;
 constexpr int kHours = 24;
 constexpr int kWeek = 7;
+constexpr int kSixHourBars = 4 * kWeek;
 constexpr int kMonth = 30;
 constexpr int kYearMonths = 12;
 
@@ -110,6 +112,25 @@ Bars dayBars(const Counts &counts, std::int64_t now, int count) {
   return bars;
 }
 
+Bars sixHourBars(const Counts &counts, std::int64_t now) {
+  const auto rangeEnd = hourStartOf(now) + kHour;
+
+  Bars bars;
+  bars.reserve(kSixHourBars);
+  for (int offset = kSixHourBars - 1; offset >= 0; --offset) {
+    const auto start = rangeEnd - (offset + 1) * 6 * kHour;
+    std::uint64_t total = 0;
+    for (int hour = 0; hour < 6; ++hour) {
+      total += at(counts, start + hour * kHour);
+    }
+    bars.emplace_back(
+        QDateTime::fromSecsSinceEpoch(start).toString(
+            QStringLiteral("MM-dd HH:mm")),
+        total);
+  }
+  return bars;
+}
+
 Bars monthBars(const Counts &counts, std::int64_t now) {
   Bars bars;
   bars.reserve(kYearMonths);
@@ -133,6 +154,21 @@ Bars yearBars(const Counts &counts) {
         chars);
   }
   return bars;
+}
+
+QString bucketLabel(const TimeBucket &bucket, ChartScale scale) {
+  switch (scale) {
+  case ChartScale::OneHour:
+  case ChartScale::SixHours:
+  case ChartScale::TwelveHours:
+    return bucket.start.toString(QStringLiteral("MM-dd HH:mm"));
+  case ChartScale::OneDay:
+  case ChartScale::OneWeek:
+    return bucket.start.toString(QStringLiteral("yyyy-MM-dd"));
+  case ChartScale::OneMonth:
+    return bucket.start.toString(QStringLiteral("yyyy-MM"));
+  }
+  return {};
 }
 
 } // namespace
@@ -160,11 +196,34 @@ StatisticsSnapshot load(StatsDb &db, std::int64_t now) {
       last24Hours,
       last7Days,
       hourBars(allHours, now),
-      dayBars(days, now, kWeek),
+      sixHourBars(allHours, now),
       dayBars(days, now, kMonth),
       monthBars(months, now),
       yearBars(years),
   };
+}
+
+ChartBars load(StatsDb &db, const ChartRange &range) {
+  const auto rows = db.hourlyBetween(range.start().toSecsSinceEpoch(),
+                                     range.end().toSecsSinceEpoch());
+  ChartBars bars;
+  bars.reserve(range.buckets().size());
+
+  auto row = rows.begin();
+  for (const auto &bucket : range.buckets()) {
+    const auto start = bucket.start.toSecsSinceEpoch();
+    const auto end = bucket.end.toSecsSinceEpoch();
+    std::uint64_t total = 0;
+    while (row != rows.end() && row->hour < start) {
+      ++row;
+    }
+    while (row != rows.end() && row->hour < end) {
+      total += row->chars;
+      ++row;
+    }
+    bars.emplace_back(bucketLabel(bucket, range.scale()), total);
+  }
+  return bars;
 }
 
 QString format(std::uint64_t value) {

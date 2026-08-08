@@ -13,6 +13,7 @@ namespace inputcounter
 {
 
   class MainWindowUi;
+  class ChartRange;
   class StatsDb;
 
   /// Shows totals and trend charts backed by the statistics database.
@@ -26,10 +27,12 @@ namespace inputcounter
 
   private:
     void refresh();
+    void editCustomRange();
     void confirmReset();
 
     std::unique_ptr<StatsDb> db_;
     std::unique_ptr<MainWindowUi> ui_;
+    std::unique_ptr<ChartRange> customRange_;
   };
 
 } // namespace inputcounter

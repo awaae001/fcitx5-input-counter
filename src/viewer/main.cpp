@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
   QApplication app(argc, argv);
   QApplication::setApplicationName(
       QStringLiteral("fcitx5-input-counter-viewer"));
-  QApplication::setApplicationDisplayName(QString(IC_("Input statistics")));
+  QApplication::setApplicationDisplayName(QString(IC_("Input Counter")));
   // Wayland has no per-window icon: the compositor resolves the icon from
   // the desktop file matching this app id.
   QApplication::setDesktopFileName(

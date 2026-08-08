@@ -158,6 +158,21 @@ std::vector<HourlyCount> StatsDb::hourlySince(std::int64_t since) {
   return rows;
 }
 
+std::vector<HourlyCount> StatsDb::hourlyBetween(std::int64_t start,
+                                                std::int64_t end) {
+  Statement stmt(db_,
+                 "SELECT hour, chars FROM stats "
+                 "WHERE hour >= ?1 AND hour < ?2 ORDER BY hour");
+  stmt.bindInt64(1, start);
+  stmt.bindInt64(2, end);
+  std::vector<HourlyCount> rows;
+  while (stmt.stepRow()) {
+    rows.push_back(
+        {stmt.columnInt64(0), static_cast<std::uint64_t>(stmt.columnInt64(1))});
+  }
+  return rows;
+}
+
 std::vector<HourlyCount> StatsDb::allHourly() {
   Statement stmt(db_, "SELECT hour, chars FROM stats ORDER BY hour");
   std::vector<HourlyCount> rows;

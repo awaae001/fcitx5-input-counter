@@ -3,11 +3,13 @@
 An Fcitx5 addon that counts committed Unicode code points and stores hourly
 totals in a local SQLite database. It does not retain committed text.
 
-The addon adds an `Input statistics` button to the Fcitx status area. Clicking
+The addon adds an `Input Counter` button to the Fcitx status area. Clicking
 it opens a Qt viewer window that shows totals (total / today / last 24 hours /
-last 7 days) and a bar chart of the last 24 hours, 7 days, 30 days, 12 months,
-or all recorded years. The viewer can also clear all recorded statistics. A
-Simplified Chinese translation is included.
+last 7 days) and bar charts for the last 24 hours, 7 days, 30 days, 12 months,
+or all recorded years. Seven-day data uses six-hour bars. A custom chart accepts
+a start time, end time, and scale from one hour through one month. The viewer
+can also clear all recorded statistics. A Simplified Chinese translation is
+included.
 
 ## Scope
 

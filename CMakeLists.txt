@@ -41,6 +41,8 @@ set_target_properties(inputcounter PROPERTIES PREFIX "")
 
 add_executable(fcitx5-input-counter-viewer
     src/viewer/bar_chart_renderer.cpp
+    src/viewer/chart_range.cpp
+    src/viewer/custom_range_dialog.cpp
     src/stats_db.cpp
     src/viewer/bar_chart_widget.cpp
     src/viewer/main.cpp
@@ -79,5 +81,16 @@ install(
     FILES data/fcitx5-input-counter.svg
     DESTINATION "${FCITX_INSTALL_DATADIR}/icons/hicolor/scalable/apps"
 )
+
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(chart-range-test
+        src/viewer/chart_range.cpp
+        tests/chart_range_test.cpp
+    )
+    target_include_directories(chart-range-test PRIVATE src/viewer)
+    target_link_libraries(chart-range-test PRIVATE Qt6::Core)
+    add_test(NAME chart-range-test COMMAND chart-range-test)
+endif()
 
 add_subdirectory(po)
