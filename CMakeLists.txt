@@ -31,7 +31,7 @@ add_library(inputcounter MODULE
     src/stats_db.cpp
 )
 target_include_directories(inputcounter PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
-target_link_libraries(inputcounter PRIVATE Fcitx5::Core SQLite::SQLite3)
+target_link_libraries(inputcounter PRIVATE Fcitx5::Core SQLite3::SQLite3)
 target_compile_definitions(inputcounter PRIVATE
     FCITX_GETTEXT_DOMAIN="fcitx5-input-counter"
     FCITX_INSTALL_LOCALEDIR="${FCITX_INSTALL_LOCALEDIR}"
@@ -54,7 +54,7 @@ target_include_directories(fcitx5-input-counter-viewer PRIVATE
     "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(fcitx5-input-counter-viewer PRIVATE
     Qt6::Widgets
-    SQLite::SQLite3
+    SQLite3::SQLite3
 )
 target_compile_definitions(fcitx5-input-counter-viewer PRIVATE
     INPUT_COUNTER_LOCALEDIR="${FCITX_INSTALL_LOCALEDIR}"
