@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-//! Implements event handling, character counting, and hourly persistence.
+//! Adapts Fcitx events to counting, persistence, and presentation components.
 
 #include "input_counter.h"
 
@@ -24,6 +24,7 @@
 #include <fcitx/statusarea.h>
 #include <fcitx/userinterfacemanager.h>
 
+#include "hourly_count_buffer.h"
 #include "stats_db.h"
 
 namespace inputcounter {
@@ -33,16 +34,20 @@ namespace {
 /// How often pending counts are written to the database, in microseconds.
 constexpr std::uint64_t kFlushIntervalUsec = 60 * 1000 * 1000;
 
+fcitx::Instance *requireInstance(fcitx::AddonManager *manager) {
+  auto *instance = manager == nullptr ? nullptr : manager->instance();
+  if (instance == nullptr) {
+    throw std::invalid_argument("inputcounter requires a live Fcitx instance");
+  }
+  return instance;
+}
+
 } // namespace
 
 InputCounterAddon::InputCounterAddon(fcitx::AddonManager *manager)
-    : instance_(manager == nullptr ? nullptr : manager->instance()) {
-  if (instance_ == nullptr) {
-    throw std::invalid_argument("inputcounter requires a live Fcitx instance");
-  }
-
+    : instance_(requireInstance(manager)), quickCounter_(*instance_) {
   try {
-    db_ = std::make_unique<StatsDb>(statsDatabasePath());
+    hourlyCounts_ = std::make_unique<HourlyCountBuffer>(statsDatabasePath());
   } catch (const std::exception &error) {
     FCITX_ERROR() << "inputcounter could not open the statistics database: "
                   << error.what();
@@ -53,20 +58,18 @@ InputCounterAddon::InputCounterAddon(fcitx::AddonManager *manager)
   action_.setLongText(_("Committed characters are counted by hour and stored "
                         "locally; no text is retained."));
   action_.connect<fcitx::SimpleAction::Activated>(
-      [this](fcitx::InputContext *) {
-        flush();
-        fcitx::startProcess({INPUT_COUNTER_VIEWER_PATH});
-      });
-  if (!action_.registerAction("inputcounter",
-                              &instance_->userInterfaceManager())) {
+      [this](fcitx::InputContext *) { openViewer(); });
+
+  auto &uiManager = instance_->userInterfaceManager();
+  if (!action_.registerAction("inputcounter", &uiManager)) {
     throw std::runtime_error(
         "inputcounter could not register its status action");
   }
+  applySettings();
 
   instance_->inputContextManager().foreach (
       [this](fcitx::InputContext *inputContext) {
-        inputContext->statusArea().addAction(
-            fcitx::StatusGroup::AfterInputMethod, &action_);
+        addStatusActions(inputContext);
         return true;
       });
 
@@ -75,8 +78,7 @@ InputCounterAddon::InputCounterAddon(fcitx::AddonManager *manager)
       [this](fcitx::Event &event) {
         auto *inputContext =
             static_cast<fcitx::InputContextEvent &>(event).inputContext();
-        inputContext->statusArea().addAction(
-            fcitx::StatusGroup::AfterInputMethod, &action_);
+        addStatusActions(inputContext);
       });
 
   commitWatcher_ = instance_->watchEvent(
@@ -122,6 +124,16 @@ InputCounterAddon::InputCounterAddon(fcitx::AddonManager *manager)
 
 InputCounterAddon::~InputCounterAddon() { flush(); }
 
+void InputCounterAddon::reloadConfig() {
+  settings_.reload();
+  applySettings();
+}
+
+void InputCounterAddon::setConfig(const fcitx::RawConfig &config) {
+  settings_.set(config);
+  applySettings();
+}
+
 void InputCounterAddon::count(std::string_view text) {
   const auto added =
       text.empty() ? 0 : fcitx_utf8_strnlen_validated(text.data(), text.size());
@@ -130,25 +142,39 @@ void InputCounterAddon::count(std::string_view text) {
     return;
   }
 
-  const auto hour =
-      hourStartOf(static_cast<std::int64_t>(std::time(nullptr)));
-  pendingChars_[hour] += static_cast<std::uint64_t>(added);
+  const auto chars = static_cast<std::uint64_t>(added);
+  if (hourlyCounts_ != nullptr) {
+    hourlyCounts_->add(static_cast<std::int64_t>(std::time(nullptr)), chars);
+  }
+  quickCounter_.record(chars);
 }
 
 void InputCounterAddon::flush() {
-  if (db_ == nullptr || pendingChars_.empty()) {
+  if (hourlyCounts_ == nullptr) {
     return;
   }
 
   try {
-    for (const auto &[hour, chars] : pendingChars_) {
-      db_->addChars(hour, chars);
-    }
-    pendingChars_.clear();
+    hourlyCounts_->flush();
   } catch (const std::exception &error) {
     FCITX_WARN() << "inputcounter failed to persist statistics: "
                  << error.what();
   }
+}
+
+void InputCounterAddon::addStatusActions(fcitx::InputContext *inputContext) {
+  auto &statusArea = inputContext->statusArea();
+  statusArea.addAction(fcitx::StatusGroup::AfterInputMethod, &action_);
+  quickCounter_.attach(*inputContext);
+}
+
+void InputCounterAddon::applySettings() {
+  quickCounter_.setVisible(settings_.quickCounterEnabled());
+}
+
+void InputCounterAddon::openViewer() {
+  flush();
+  fcitx::startProcess({INPUT_COUNTER_VIEWER_PATH});
 }
 
 } // namespace inputcounter

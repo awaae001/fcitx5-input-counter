@@ -3,18 +3,20 @@
 #ifndef FCITX5_INPUT_COUNTER_INPUT_COUNTER_H
 #define FCITX5_INPUT_COUNTER_INPUT_COUNTER_H
 
-//! Declares the Fcitx addon that owns counting and persistence state.
+//! Declares the Fcitx event adapter for input counting.
 
-#include <cstdint>
-#include <map>
 #include <memory>
 #include <string_view>
 
+#include <fcitx-config/rawconfig.h>
 #include <fcitx-utils/eventloopinterface.h>
 #include <fcitx-utils/handlertable.h>
 #include <fcitx/action.h>
 #include <fcitx/addoninstance.h>
 #include <fcitx/instance.h>
+
+#include "input_counter_settings.h"
+#include "quick_counter.h"
 
 namespace fcitx {
 class AddonManager;
@@ -22,7 +24,7 @@ class AddonManager;
 
 namespace inputcounter {
 
-class StatsDb;
+class HourlyCountBuffer;
 
 /// Counts text handled by Fcitx, persists hourly totals in SQLite, and
 /// launches the statistics viewer from its status-area button.
@@ -32,13 +34,26 @@ public:
   explicit InputCounterAddon(fcitx::AddonManager *manager);
   ~InputCounterAddon() override;
 
+  /// Reloads addon settings and reapplies quick-counter visibility.
+  void reloadConfig() override;
+  /// Returns the settings exposed through the Fcitx configuration UI.
+  const fcitx::Configuration *getConfig() const override {
+    return settings_.configuration();
+  }
+  /// Applies and persists settings received from the Fcitx configuration UI.
+  void setConfig(const fcitx::RawConfig &config) override;
+
 private:
   void count(std::string_view text);
   void flush();
+  void addStatusActions(fcitx::InputContext *inputContext);
+  void applySettings();
+  void openViewer();
 
   fcitx::Instance *instance_;
-  std::unique_ptr<StatsDb> db_;
-  std::map<std::int64_t, std::uint64_t> pendingChars_;
+  InputCounterSettings settings_;
+  std::unique_ptr<HourlyCountBuffer> hourlyCounts_;
+  QuickCounter quickCounter_;
   fcitx::SimpleAction action_;
   std::unique_ptr<fcitx::EventSourceTime> flushEvent_;
   std::unique_ptr<fcitx::HandlerTableEntry<fcitx::EventHandler>>

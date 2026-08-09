@@ -8,6 +8,21 @@ msgstr ""
 msgid "Input Counter"
 msgstr "输入计数器"
 
+msgid "Quick counter"
+msgstr "快捷计数器"
+
+msgid "Count"
+msgstr "计数"
+
+msgid "Start recording"
+msgstr "开始记录"
+
+msgid "Pause recording"
+msgstr "暂停记录"
+
+msgid "Reset"
+msgstr "归零"
+
 msgid ""
 "Committed characters are counted by hour and stored locally; no text is "
 "retained."

@@ -26,8 +26,11 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
 configure_file(src/embedded_sql.h.in embedded_sql.h @ONLY)
 
 add_library(inputcounter MODULE
+    src/hourly_count_buffer.cpp
     src/input_counter.cpp
+    src/input_counter_settings.cpp
     src/main.cpp
+    src/quick_counter.cpp
     src/stats_db.cpp
 )
 target_include_directories(inputcounter PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
@@ -84,6 +87,18 @@ install(
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(hourly-count-buffer-test
+        src/hourly_count_buffer.cpp
+        src/stats_db.cpp
+        tests/hourly_count_buffer_test.cpp
+    )
+    target_include_directories(hourly-count-buffer-test PRIVATE
+        "${CMAKE_CURRENT_BINARY_DIR}"
+        src
+    )
+    target_link_libraries(hourly-count-buffer-test PRIVATE SQLite3::SQLite3)
+    add_test(NAME hourly-count-buffer-test COMMAND hourly-count-buffer-test)
+
     add_executable(chart-range-test
         src/viewer/chart_range.cpp
         tests/chart_range_test.cpp

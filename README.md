@@ -17,6 +17,10 @@ The addon adds an `Input Counter` button to the Fcitx status area. Clicking it o
 
 - Counts are buffered in memory and flushed to the database every 60 seconds,
   on shutdown, and whenever the statistics button is clicked.
+- The status area provides a manually started, pausable in-memory counter
+  with a reset control. It does not affect the persisted statistics, resets
+  when Fcitx restarts, and is never written to the database. Its first-level
+  status actions can be hidden with the `Quick counter` addon setting.
 
 ## Build
 
