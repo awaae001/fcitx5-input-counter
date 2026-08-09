@@ -24,6 +24,7 @@ class AddonManager;
 
 namespace inputcounter {
 
+class DatabaseManager;
 class HourlyCountBuffer;
 
 /// Counts text handled by Fcitx, persists hourly totals in SQLite, and
@@ -52,6 +53,7 @@ private:
 
   fcitx::Instance *instance_;
   InputCounterSettings settings_;
+  std::unique_ptr<DatabaseManager> database_;
   std::unique_ptr<HourlyCountBuffer> hourlyCounts_;
   QuickCounter quickCounter_;
   fcitx::SimpleAction action_;

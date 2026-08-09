@@ -14,7 +14,7 @@ namespace inputcounter
 
   class MainWindowUi;
   class ChartRange;
-  class StatsDb;
+  class DatabaseManager;
 
   /// Shows totals and trend charts backed by the statistics database.
   class MainWindow final : public QMainWindow
@@ -22,7 +22,8 @@ namespace inputcounter
     Q_OBJECT
 
   public:
-    explicit MainWindow(QWidget *parent = nullptr);
+    /// Creates a viewer that borrows database for its entire lifetime.
+    explicit MainWindow(DatabaseManager &database, QWidget *parent = nullptr);
     ~MainWindow() override;
 
   private:
@@ -30,7 +31,7 @@ namespace inputcounter
     void editCustomRange();
     void confirmReset();
 
-    std::unique_ptr<StatsDb> db_;
+    DatabaseManager &database_;
     std::unique_ptr<MainWindowUi> ui_;
     std::unique_ptr<ChartRange> customRange_;
   };

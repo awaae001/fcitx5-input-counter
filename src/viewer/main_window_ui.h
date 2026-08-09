@@ -57,9 +57,6 @@ namespace inputcounter
   /// Builds the viewer layout in window.
   MainWindowUi buildUi(QMainWindow &window);
 
-  /// Replaces window's contents with the database-open error message.
-  void showDbError(QMainWindow &window, const char *message);
-
 } // namespace inputcounter
 
 #endif // FCITX5_INPUT_COUNTER_VIEWER_MAIN_WINDOW_UI_H

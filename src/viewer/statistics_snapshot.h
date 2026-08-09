@@ -14,7 +14,7 @@
 namespace inputcounter {
 
 class ChartRange;
-class StatsDb;
+class DatabaseManager;
 
 /// Labeled values displayed by a bar chart.
 using ChartBars = std::vector<std::pair<QString, std::uint64_t>>;
@@ -45,10 +45,10 @@ struct StatisticsSnapshot final {
 std::int64_t nowSeconds();
 
 /// Reads and aggregates one display snapshot at now.
-StatisticsSnapshot load(StatsDb &db, std::int64_t now);
+StatisticsSnapshot load(DatabaseManager &database, std::int64_t now);
 
 /// Reads and aggregates bars for a validated custom range.
-ChartBars load(StatsDb &db, const ChartRange &range);
+ChartBars load(DatabaseManager &database, const ChartRange &range);
 
 /// Formats a count with the current locale.
 QString format(std::uint64_t value);

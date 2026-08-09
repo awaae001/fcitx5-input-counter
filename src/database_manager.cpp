@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 
-//! Implements the shared SQLite storage for hourly character counts.
+//! Implements process-local management of the statistics database.
 
-#include "stats_db.h"
+#include "database_manager.h"
 
 #include <sqlite3.h>
 
@@ -72,9 +72,7 @@ void execSql(sqlite3 *db, const char *sql) {
   }
 }
 
-} // namespace
-
-std::string statsDatabasePath() {
+std::string defaultDatabasePath() {
   std::filesystem::path base;
   if (const char *xdgDataHome = std::getenv("XDG_DATA_HOME");
       xdgDataHome != nullptr && *xdgDataHome != '\0') {
@@ -92,12 +90,17 @@ std::string statsDatabasePath() {
   return (base / "stats.db").string();
 }
 
-StatsDb::StatsDb(const std::string &path) {
+} // namespace
+
+DatabaseManager::DatabaseManager() : DatabaseManager(defaultDatabasePath()) {}
+
+DatabaseManager::DatabaseManager(const std::string &path) {
   if (sqlite3_open_v2(path.c_str(), &db_,
                       SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE |
                           SQLITE_OPEN_FULLMUTEX,
                       nullptr) != SQLITE_OK) {
-    const std::string message = db_ != nullptr ? sqlite3_errmsg(db_) : "out of memory";
+    const std::string message =
+        db_ != nullptr ? sqlite3_errmsg(db_) : "out of memory";
     sqlite3_close(db_);
     db_ = nullptr;
     throw std::runtime_error(message);
@@ -114,39 +117,39 @@ StatsDb::StatsDb(const std::string &path) {
   }
 }
 
-StatsDb::~StatsDb() {
+DatabaseManager::~DatabaseManager() {
   if (db_ != nullptr) {
     sqlite3_close(db_);
   }
 }
 
-void StatsDb::addChars(std::int64_t hourStart, std::uint64_t chars) {
+void DatabaseManager::addChars(std::int64_t hourStart, std::uint64_t chars) {
   if (chars == 0) {
     return;
   }
-  Statement stmt(db_,
-                 "INSERT INTO stats(hour, chars) VALUES(?1, ?2) "
-                 "ON CONFLICT(hour) DO UPDATE SET chars = chars + excluded.chars");
+  Statement stmt(
+      db_, "INSERT INTO stats(hour, chars) VALUES(?1, ?2) "
+           "ON CONFLICT(hour) DO UPDATE SET chars = chars + excluded.chars");
   stmt.bindInt64(1, hourStart);
   stmt.bindInt64(2, static_cast<std::int64_t>(chars));
   stmt.stepDone();
 }
 
-std::uint64_t StatsDb::totalChars() {
+std::uint64_t DatabaseManager::totalChars() {
   Statement stmt(db_, "SELECT COALESCE(SUM(chars), 0) FROM stats");
   stmt.stepRow();
   return static_cast<std::uint64_t>(stmt.columnInt64(0));
 }
 
-std::uint64_t StatsDb::charsSince(std::int64_t since) {
-  Statement stmt(
-      db_, "SELECT COALESCE(SUM(chars), 0) FROM stats WHERE hour >= ?1");
+std::uint64_t DatabaseManager::charsSince(std::int64_t since) {
+  Statement stmt(db_,
+                 "SELECT COALESCE(SUM(chars), 0) FROM stats WHERE hour >= ?1");
   stmt.bindInt64(1, hourStartOf(since));
   stmt.stepRow();
   return static_cast<std::uint64_t>(stmt.columnInt64(0));
 }
 
-std::vector<HourlyCount> StatsDb::hourlySince(std::int64_t since) {
+std::vector<HourlyCount> DatabaseManager::hourlySince(std::int64_t since) {
   Statement stmt(
       db_, "SELECT hour, chars FROM stats WHERE hour >= ?1 ORDER BY hour");
   stmt.bindInt64(1, hourStartOf(since));
@@ -158,11 +161,10 @@ std::vector<HourlyCount> StatsDb::hourlySince(std::int64_t since) {
   return rows;
 }
 
-std::vector<HourlyCount> StatsDb::hourlyBetween(std::int64_t start,
-                                                std::int64_t end) {
-  Statement stmt(db_,
-                 "SELECT hour, chars FROM stats "
-                 "WHERE hour >= ?1 AND hour < ?2 ORDER BY hour");
+std::vector<HourlyCount> DatabaseManager::hourlyBetween(std::int64_t start,
+                                                        std::int64_t end) {
+  Statement stmt(db_, "SELECT hour, chars FROM stats "
+                      "WHERE hour >= ?1 AND hour < ?2 ORDER BY hour");
   stmt.bindInt64(1, start);
   stmt.bindInt64(2, end);
   std::vector<HourlyCount> rows;
@@ -173,7 +175,7 @@ std::vector<HourlyCount> StatsDb::hourlyBetween(std::int64_t start,
   return rows;
 }
 
-std::vector<HourlyCount> StatsDb::allHourly() {
+std::vector<HourlyCount> DatabaseManager::allHourly() {
   Statement stmt(db_, "SELECT hour, chars FROM stats ORDER BY hour");
   std::vector<HourlyCount> rows;
   while (stmt.stepRow()) {
@@ -183,6 +185,6 @@ std::vector<HourlyCount> StatsDb::allHourly() {
   return rows;
 }
 
-void StatsDb::reset() { execSql(db_, "DELETE FROM stats"); }
+void DatabaseManager::reset() { execSql(db_, "DELETE FROM stats"); }
 
 } // namespace inputcounter

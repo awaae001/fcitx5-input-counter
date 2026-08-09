@@ -7,19 +7,16 @@
 
 #include <cstdint>
 #include <map>
-#include <string>
-
-#include "stats_db.h"
 
 namespace inputcounter {
 
-/// Owns pending hourly counts and the database connection that persists them.
+class DatabaseManager;
+
+/// Owns pending hourly counts and persists them through a borrowed manager.
 class HourlyCountBuffer final {
 public:
-  /// Opens the statistics database at path.
-  ///
-  /// Throws std::runtime_error when the database cannot be opened.
-  explicit HourlyCountBuffer(const std::string &path);
+  /// Borrows database for the lifetime of this buffer.
+  explicit HourlyCountBuffer(DatabaseManager &database) noexcept;
 
   /// Adds chars to the bucket containing unixSeconds.
   void add(std::int64_t unixSeconds, std::uint64_t chars);
@@ -31,7 +28,7 @@ public:
   void flush();
 
 private:
-  StatsDb db_;
+  DatabaseManager &database_;
   std::map<std::int64_t, std::uint64_t> pending_;
 };
 

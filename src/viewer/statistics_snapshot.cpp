@@ -12,7 +12,7 @@
 #include <QLocale>
 #include <QTime>
 
-#include "../stats_db.h"
+#include "../database_manager.h"
 #include "chart_range.h"
 
 namespace inputcounter {
@@ -45,9 +45,9 @@ std::uint64_t at(const Counts &counts, std::int64_t timestamp) {
   return it == counts.end() ? 0 : it->second;
 }
 
-Counts readAllHours(StatsDb &db) {
+Counts readAllHours(DatabaseManager &database) {
   Counts counts;
-  for (const auto &row : db.allHourly()) {
+  for (const auto &row : database.allHourly()) {
     counts[row.hour] += row.chars;
   }
   return counts;
@@ -123,10 +123,9 @@ Bars sixHourBars(const Counts &counts, std::int64_t now) {
     for (int hour = 0; hour < 6; ++hour) {
       total += at(counts, start + hour * kHour);
     }
-    bars.emplace_back(
-        QDateTime::fromSecsSinceEpoch(start).toString(
-            QStringLiteral("MM-dd HH:mm")),
-        total);
+    bars.emplace_back(QDateTime::fromSecsSinceEpoch(start).toString(
+                          QStringLiteral("MM-dd HH:mm")),
+                      total);
   }
   return bars;
 }
@@ -179,13 +178,13 @@ std::int64_t nowSeconds() {
       .count();
 }
 
-StatisticsSnapshot load(StatsDb &db, std::int64_t now) {
+StatisticsSnapshot load(DatabaseManager &database, std::int64_t now) {
   const auto today = dayStart(now);
-  const auto total = db.totalChars();
-  const auto todayCount = db.charsSince(today);
-  const auto last24Hours = db.charsSince(now - kHours * kHour);
-  const auto last7Days = db.charsSince(today - (kWeek - 1) * kDay);
-  const auto allHours = readAllHours(db);
+  const auto total = database.totalChars();
+  const auto todayCount = database.charsSince(today);
+  const auto last24Hours = database.charsSince(now - kHours * kHour);
+  const auto last7Days = database.charsSince(today - (kWeek - 1) * kDay);
+  const auto allHours = readAllHours(database);
   const auto days = sumDays(allHours);
   const auto months = sumMonths(allHours);
   const auto years = sumYears(allHours);
@@ -203,9 +202,9 @@ StatisticsSnapshot load(StatsDb &db, std::int64_t now) {
   };
 }
 
-ChartBars load(StatsDb &db, const ChartRange &range) {
-  const auto rows = db.hourlyBetween(range.start().toSecsSinceEpoch(),
-                                     range.end().toSecsSinceEpoch());
+ChartBars load(DatabaseManager &database, const ChartRange &range) {
+  const auto rows = database.hourlyBetween(range.start().toSecsSinceEpoch(),
+                                           range.end().toSecsSinceEpoch());
   ChartBars bars;
   bars.reserve(range.buckets().size());
 

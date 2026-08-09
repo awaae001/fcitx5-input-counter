@@ -9,12 +9,12 @@
 #include <stdexcept>
 #include <string>
 
-#include "stats_db.h"
+#include "database_manager.h"
 
 namespace {
 
+using inputcounter::DatabaseManager;
 using inputcounter::HourlyCountBuffer;
-using inputcounter::StatsDb;
 
 void require(bool condition, const char *message) {
   if (!condition) {
@@ -51,15 +51,15 @@ private:
 
 void aggregates_counts_by_hour() {
   TemporaryDatabase database;
-  HourlyCountBuffer buffer(database.path());
+  DatabaseManager manager(database.path());
+  HourlyCountBuffer buffer(manager);
 
   buffer.add(3599, 2);
   buffer.add(3601, 3);
   buffer.add(3610, 4);
   buffer.flush();
 
-  StatsDb persisted(database.path());
-  const auto rows = persisted.allHourly();
+  const auto rows = manager.allHourly();
   require(rows.size() == 2, "counts were not split into hourly buckets");
   require(rows[0].hour == 0 && rows[0].chars == 2,
           "first hourly bucket was incorrect");
@@ -69,14 +69,14 @@ void aggregates_counts_by_hour() {
 
 void flushes_each_count_once() {
   TemporaryDatabase database;
-  HourlyCountBuffer buffer(database.path());
+  DatabaseManager manager(database.path());
+  HourlyCountBuffer buffer(manager);
 
   buffer.add(3600, 5);
   buffer.flush();
   buffer.flush();
 
-  StatsDb persisted(database.path());
-  require(persisted.totalChars() == 5, "a persisted count was flushed twice");
+  require(manager.totalChars() == 5, "a persisted count was flushed twice");
 }
 
 } // namespace

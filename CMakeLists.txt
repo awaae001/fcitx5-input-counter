@@ -26,12 +26,12 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
 configure_file(src/embedded_sql.h.in embedded_sql.h @ONLY)
 
 add_library(inputcounter MODULE
+    src/database_manager.cpp
     src/hourly_count_buffer.cpp
     src/input_counter.cpp
     src/input_counter_settings.cpp
     src/main.cpp
     src/quick_counter.cpp
-    src/stats_db.cpp
 )
 target_include_directories(inputcounter PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(inputcounter PRIVATE Fcitx5::Core SQLite3::SQLite3)
@@ -43,10 +43,10 @@ target_compile_definitions(inputcounter PRIVATE
 set_target_properties(inputcounter PROPERTIES PREFIX "")
 
 add_executable(fcitx5-input-counter-viewer
+    src/database_manager.cpp
     src/viewer/bar_chart_renderer.cpp
     src/viewer/chart_range.cpp
     src/viewer/custom_range_dialog.cpp
-    src/stats_db.cpp
     src/viewer/bar_chart_widget.cpp
     src/viewer/main.cpp
     src/viewer/main_window.cpp
@@ -88,8 +88,8 @@ install(
 include(CTest)
 if(BUILD_TESTING)
     add_executable(hourly-count-buffer-test
+        src/database_manager.cpp
         src/hourly_count_buffer.cpp
-        src/stats_db.cpp
         tests/hourly_count_buffer_test.cpp
     )
     target_include_directories(hourly-count-buffer-test PRIVATE

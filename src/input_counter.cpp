@@ -7,6 +7,7 @@
 #include <ctime>
 #include <exception>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 #include <fcitx-utils/cutf8.h>
@@ -24,8 +25,8 @@
 #include <fcitx/statusarea.h>
 #include <fcitx/userinterfacemanager.h>
 
+#include "database_manager.h"
 #include "hourly_count_buffer.h"
-#include "stats_db.h"
 
 namespace inputcounter {
 
@@ -47,7 +48,10 @@ fcitx::Instance *requireInstance(fcitx::AddonManager *manager) {
 InputCounterAddon::InputCounterAddon(fcitx::AddonManager *manager)
     : instance_(requireInstance(manager)), quickCounter_(*instance_) {
   try {
-    hourlyCounts_ = std::make_unique<HourlyCountBuffer>(statsDatabasePath());
+    auto database = std::make_unique<DatabaseManager>();
+    auto hourlyCounts = std::make_unique<HourlyCountBuffer>(*database);
+    database_ = std::move(database);
+    hourlyCounts_ = std::move(hourlyCounts);
   } catch (const std::exception &error) {
     FCITX_ERROR() << "inputcounter could not open the statistics database: "
                   << error.what();

@@ -17,7 +17,7 @@
 #include <QTabBar>
 #include <QTimer>
 
-#include "../stats_db.h"
+#include "../database_manager.h"
 #include "bar_chart_widget.h"
 #include "chart_range.h"
 #include "custom_range_dialog.h"
@@ -28,20 +28,10 @@
 namespace inputcounter
 {
 
-  MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
+  MainWindow::MainWindow(DatabaseManager &database, QWidget *parent)
+      : QMainWindow(parent), database_(database)
   {
     setWindowTitle(IC_("Input Counter"));
-
-    try
-    {
-      const auto path = QString::fromStdString(statsDatabasePath());
-      db_ = std::make_unique<StatsDb>(path.toStdString());
-    }
-    catch (const std::exception &error)
-    {
-      showDbError(*this, error.what());
-      return;
-    }
 
     ui_ = std::make_unique<MainWindowUi>(buildUi(*this));
 
@@ -66,14 +56,14 @@ namespace inputcounter
 
   void MainWindow::refresh()
   {
-    if (db_ == nullptr || ui_ == nullptr)
+    if (ui_ == nullptr)
     {
       return;
     }
 
     try
     {
-      auto data = load(*db_, nowSeconds());
+      auto data = load(database_, nowSeconds());
       ui_->totalValue.setText(format(data.total));
       ui_->todayValue.setText(format(data.today));
       ui_->last24HoursValue.setText(format(data.last24Hours));
@@ -85,7 +75,7 @@ namespace inputcounter
       ui_->allTimeChart.setData(std::move(data.allTime));
       if (customRange_ != nullptr)
       {
-        ui_->customChart.setData(load(*db_, *customRange_));
+        ui_->customChart.setData(load(database_, *customRange_));
       }
     }
     catch (const std::exception &error)
@@ -98,7 +88,7 @@ namespace inputcounter
 
   void MainWindow::editCustomRange()
   {
-    if (db_ == nullptr || ui_ == nullptr)
+    if (ui_ == nullptr)
     {
       return;
     }
@@ -133,7 +123,7 @@ namespace inputcounter
 
     try
     {
-      db_->reset();
+      database_.reset();
     }
     catch (const std::exception &error)
     {

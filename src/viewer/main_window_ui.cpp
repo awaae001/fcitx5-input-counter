@@ -216,19 +216,4 @@ namespace inputcounter
             *refreshShortcut};
   }
 
-  void showDbError(QMainWindow &window, const char *message)
-  {
-    auto *central = new QWidget(&window);
-    auto *layout = new QHBoxLayout(central);
-    layout->setContentsMargins(12, 12, 12, 12);
-    layout->setSpacing(12);
-
-    auto *label = new QLabel(
-        QString(IC_("Could not open the statistics database: %1")).arg(message),
-        central);
-    label->setWordWrap(true);
-    layout->addWidget(label);
-    window.setCentralWidget(central);
-  }
-
 } // namespace inputcounter
