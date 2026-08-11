@@ -15,6 +15,7 @@
 #include <QPushButton>
 #include <QShortcut>
 #include <QStackedWidget>
+#include <QStatusBar>
 #include <QStyle>
 #include <QTabBar>
 #include <QVBoxLayout>
@@ -178,9 +179,17 @@ namespace inputcounter
         window.style()->standardIcon(QStyle::SP_TrashIcon), IC_("Clear all…"),
         central);
 
+    auto *unavailableLabel = new QLabel(IC_("Data unavailable"), central);
+    unavailableLabel->setForegroundRole(QPalette::PlaceholderText);
+    unavailableLabel->setWordWrap(true);
+
+    auto *connectionLabel = new QLabel(&window);
+    window.statusBar()->addPermanentWidget(connectionLabel);
+
     auto *sidePanel = new QVBoxLayout;
     sidePanel->setSpacing(10);
     sidePanel->addWidget(&overview.widget);
+    sidePanel->addWidget(unavailableLabel);
     sidePanel->addStretch(1);
     sidePanel->addWidget(refreshButton);
     sidePanel->addWidget(clearButton);
@@ -202,6 +211,8 @@ namespace inputcounter
             overview.today,
             overview.last24Hours,
             overview.last7Days,
+            *unavailableLabel,
+            *connectionLabel,
             charts.hours,
             charts.week,
             charts.month,

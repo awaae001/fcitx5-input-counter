@@ -9,32 +9,39 @@
 
 #include <QMainWindow>
 
-namespace inputcounter
-{
+namespace inputcounter {
 
-  class MainWindowUi;
-  class ChartRange;
-  class DatabaseManager;
+class ChartRange;
+class MainWindowUi;
+class StatisticsClient;
 
-  /// Shows totals and trend charts backed by the statistics database.
-  class MainWindow final : public QMainWindow
-  {
-    Q_OBJECT
+/// Shows statistics obtained from the running Fcitx addon.
+class MainWindow final : public QMainWindow {
+  Q_OBJECT
 
-  public:
-    /// Creates a viewer that borrows database for its entire lifetime.
-    explicit MainWindow(DatabaseManager &database, QWidget *parent = nullptr);
-    ~MainWindow() override;
+public:
+  /// Creates a viewer connected to the addon's session-bus interface.
+  explicit MainWindow(QWidget *parent = nullptr);
+  ~MainWindow() override;
 
-  private:
-    void refresh();
-    void editCustomRange();
-    void confirmReset();
+private:
+  void refresh();
+  void editCustomRange();
+  void confirmReset();
+  void setBusy(bool busy);
+  void setConnected();
+  void setUnavailable();
+  void finishOperation();
+  void clearDisplay();
 
-    DatabaseManager &database_;
-    std::unique_ptr<MainWindowUi> ui_;
-    std::unique_ptr<ChartRange> customRange_;
-  };
+  std::unique_ptr<StatisticsClient> client_;
+  std::unique_ptr<MainWindowUi> ui_;
+  std::unique_ptr<ChartRange> customRange_;
+  bool operationPending_ = false;
+  bool refreshQueued_ = false;
+  bool available_ = false;
+  bool hasSnapshot_ = false;
+};
 
 } // namespace inputcounter
 

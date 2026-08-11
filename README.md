@@ -2,7 +2,7 @@
 
 An Fcitx5 addon that counts committed Unicode code points and stores hourly totals in a local SQLite database. It does not retain committed text.
 
-The addon adds an `Input Counter` button to the Fcitx status area. Clicking it opens a Qt viewer window that shows totals (total / today / last 24 hours / last 7 days) and bar charts for the last 24 hours, 7 days, 30 days, 12 months,or all recorded years. Seven-day data uses six-hour bars. A custom chart acceptsa start time, end time, and scale from one hour through one month. The viewer can also clear all recorded statistics. A Simplified Chinese translation is included.
+The addon adds an `Input Counter` button to the Fcitx status area. Clicking it opens a Qt viewer window that shows totals (total / today / last 24 hours / last 7 days) and bar charts for the last 24 hours, 7 days, 30 days, 12 months, or all recorded years. Seven-day data uses six-hour bars. A custom chart accepts a start time, end time, and scale from one hour through one month. The viewer can also clear all recorded statistics. A Simplified Chinese translation is included.
 
 ## Scope
 
@@ -17,6 +17,13 @@ The addon adds an `Input Counter` button to the Fcitx status area. Clicking it o
 
 - Counts are buffered in memory and flushed to the database every 60 seconds,
   on shutdown, and whenever the statistics button is clicked.
+- The addon is the sole owner of the SQLite database. The viewer requests
+  overview values and bounded chart buckets through
+  `org.fcitx.Fcitx.InputCounter1` on the Fcitx session bus. It refreshes the
+  active chart every 60 seconds and stays open with a data-unavailable state
+  while the addon is unreachable. Normal refreshes use bounded summary and
+  bucket queries; `GetData` remains available for explicit full-history
+  export.
 - The status area provides a manually started, pausable in-memory counter
   with a reset control. It does not affect the persisted statistics, resets
   when Fcitx restarts, and is never written to the database. Its first-level
@@ -31,7 +38,8 @@ cmake -S . -B build -G Ninja \
 cmake --build build
 ```
 
-Build dependencies: Fcitx5Core (>= 5.1.2), SQLite3, Qt6 Widgets, Gettext.
+Build dependencies: Fcitx5Core (>= 5.1.2), SQLite3, Qt6 DBus and Widgets,
+Gettext.
 
 ## Install
 

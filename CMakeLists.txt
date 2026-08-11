@@ -10,9 +10,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_AUTOMOC ON)
 
 find_package(Fcitx5Core 5.1.2 REQUIRED)
+find_package(Fcitx5ModuleDBus REQUIRED)
 find_package(Gettext REQUIRED)
 find_package(SQLite3 REQUIRED)
-find_package(Qt6 REQUIRED COMPONENTS Widgets)
+find_package(Qt6 REQUIRED COMPONENTS DBus Widgets)
 
 include("${FCITX_INSTALL_CMAKECONFIG_DIR}/Fcitx5Utils/Fcitx5CompilerSettings.cmake")
 include("${FCITX_INSTALL_CMAKECONFIG_DIR}/Fcitx5Utils/Fcitx5Macros.cmake")
@@ -29,12 +30,18 @@ add_library(inputcounter MODULE
     src/database_manager.cpp
     src/hourly_count_buffer.cpp
     src/input_counter.cpp
+    src/input_counter_dbus.cpp
     src/input_counter_settings.cpp
     src/main.cpp
     src/quick_counter.cpp
+    src/statistics_backend.cpp
 )
 target_include_directories(inputcounter PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
-target_link_libraries(inputcounter PRIVATE Fcitx5::Core SQLite3::SQLite3)
+target_link_libraries(inputcounter PRIVATE
+    Fcitx5::Core
+    Fcitx5::Module::DBus
+    SQLite3::SQLite3
+)
 target_compile_definitions(inputcounter PRIVATE
     FCITX_GETTEXT_DOMAIN="fcitx5-input-counter"
     FCITX_INSTALL_LOCALEDIR="${FCITX_INSTALL_LOCALEDIR}"
@@ -43,7 +50,6 @@ target_compile_definitions(inputcounter PRIVATE
 set_target_properties(inputcounter PROPERTIES PREFIX "")
 
 add_executable(fcitx5-input-counter-viewer
-    src/database_manager.cpp
     src/viewer/bar_chart_renderer.cpp
     src/viewer/chart_range.cpp
     src/viewer/custom_range_dialog.cpp
@@ -51,13 +57,14 @@ add_executable(fcitx5-input-counter-viewer
     src/viewer/main.cpp
     src/viewer/main_window.cpp
     src/viewer/main_window_ui.cpp
+    src/viewer/statistics_client.cpp
     src/viewer/statistics_snapshot.cpp
 )
 target_include_directories(fcitx5-input-counter-viewer PRIVATE
     "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(fcitx5-input-counter-viewer PRIVATE
+    Qt6::DBus
     Qt6::Widgets
-    SQLite3::SQLite3
 )
 target_compile_definitions(fcitx5-input-counter-viewer PRIVATE
     INPUT_COUNTER_LOCALEDIR="${FCITX_INSTALL_LOCALEDIR}"
@@ -106,6 +113,31 @@ if(BUILD_TESTING)
     target_include_directories(chart-range-test PRIVATE src/viewer)
     target_link_libraries(chart-range-test PRIVATE Qt6::Core)
     add_test(NAME chart-range-test COMMAND chart-range-test)
+
+    add_executable(statistics-backend-test
+        src/database_manager.cpp
+        src/hourly_count_buffer.cpp
+        src/statistics_backend.cpp
+        tests/statistics_backend_test.cpp
+    )
+    target_include_directories(statistics-backend-test PRIVATE
+        "${CMAKE_CURRENT_BINARY_DIR}"
+        src
+    )
+    target_link_libraries(statistics-backend-test PRIVATE SQLite3::SQLite3)
+    add_test(NAME statistics-backend-test COMMAND statistics-backend-test)
+
+    add_executable(statistics-snapshot-test
+        src/viewer/chart_range.cpp
+        src/viewer/statistics_snapshot.cpp
+        tests/statistics_snapshot_test.cpp
+    )
+    target_include_directories(statistics-snapshot-test PRIVATE
+        src
+        src/viewer
+    )
+    target_link_libraries(statistics-snapshot-test PRIVATE Qt6::Core)
+    add_test(NAME statistics-snapshot-test COMMAND statistics-snapshot-test)
 endif()
 
 add_subdirectory(po)

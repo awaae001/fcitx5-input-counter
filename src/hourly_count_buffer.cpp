@@ -24,4 +24,6 @@ void HourlyCountBuffer::flush() {
   }
 }
 
+void HourlyCountBuffer::clear() noexcept { pending_.clear(); }
+
 } // namespace inputcounter

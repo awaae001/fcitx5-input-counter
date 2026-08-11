@@ -2,15 +2,11 @@
 
 //! Entry point of the input statistics viewer.
 
-#include <clocale>
-#include <exception>
-
 #include <QApplication>
 #include <QIcon>
-#include <QMessageBox>
 #include <QString>
+#include <clocale>
 
-#include "../database_manager.h"
 #include "i18n.h"
 #include "main_window.h"
 
@@ -31,19 +27,10 @@ int main(int argc, char *argv[]) {
   QApplication::setDesktopFileName(
       QStringLiteral("fcitx5-input-counter-viewer"));
 
-  try {
-    inputcounter::DatabaseManager database;
-    inputcounter::MainWindow window(database);
-    // X11 fallback; on Wayland this is ignored in favor of the desktop file.
-    window.setWindowIcon(
-        QIcon::fromTheme(QStringLiteral("fcitx5-input-counter")));
-    window.show();
-    return QApplication::exec();
-  } catch (const std::exception &error) {
-    QMessageBox::critical(
-        nullptr, IC_("Input Counter"),
-        QString(IC_("Could not open the statistics database: %1"))
-            .arg(error.what()));
-    return 1;
-  }
+  inputcounter::MainWindow window;
+  // X11 fallback; on Wayland this is ignored in favor of the desktop file.
+  window.setWindowIcon(
+      QIcon::fromTheme(QStringLiteral("fcitx5-input-counter")));
+  window.show();
+  return QApplication::exec();
 }

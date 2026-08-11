@@ -27,6 +27,9 @@ public:
   /// throws, the failed bucket and all later buckets remain pending.
   void flush();
 
+  /// Discards all counts that have not been persisted yet.
+  void clear() noexcept;
+
 private:
   DatabaseManager &database_;
   std::map<std::int64_t, std::uint64_t> pending_;

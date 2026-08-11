@@ -28,6 +28,10 @@ namespace inputcounter
     QLabel &last24HoursValue;
     /// Seven-day count label.
     QLabel &last7DaysValue;
+    /// Reports that the addon cannot currently provide statistics.
+    QLabel &unavailableLabel;
+    /// Shows the current addon connection state in the window corner.
+    QLabel &connectionLabel;
     /// Hourly chart.
     BarChartWidget &hoursChart;
     /// Seven-day chart.

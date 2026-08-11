@@ -58,6 +58,10 @@ public:
     return static_cast<std::int64_t>(sqlite3_column_int64(stmt_, index));
   }
 
+  bool columnIsNull(int index) const {
+    return sqlite3_column_type(stmt_, index) == SQLITE_NULL;
+  }
+
 private:
   sqlite3 *db_;
   sqlite3_stmt *stmt_ = nullptr;
@@ -183,6 +187,15 @@ std::vector<HourlyCount> DatabaseManager::allHourly() {
         {stmt.columnInt64(0), static_cast<std::uint64_t>(stmt.columnInt64(1))});
   }
   return rows;
+}
+
+std::optional<std::int64_t> DatabaseManager::firstHour() {
+  Statement stmt(db_, "SELECT MIN(hour) FROM stats");
+  stmt.stepRow();
+  if (stmt.columnIsNull(0)) {
+    return std::nullopt;
+  }
+  return stmt.columnInt64(0);
 }
 
 void DatabaseManager::reset() { execSql(db_, "DELETE FROM stats"); }

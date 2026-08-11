@@ -6,6 +6,7 @@
 //! Owns the process-local SQLite connection used for input statistics.
 
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -52,6 +53,9 @@ public:
 
   /// Returns every hourly row, ascending.
   std::vector<HourlyCount> allHourly();
+
+  /// Returns the earliest recorded hour, or no value when the table is empty.
+  std::optional<std::int64_t> firstHour();
 
   /// Deletes all recorded statistics.
   void reset();

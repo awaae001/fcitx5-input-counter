@@ -11,6 +11,7 @@
 #include <vector>
 
 #include <fcitx-utils/cutf8.h>
+#include <fcitx-utils/dbus/bus.h>
 #include <fcitx-utils/event.h>
 #include <fcitx-utils/i18n.h>
 #include <fcitx-utils/key.h>
@@ -25,8 +26,12 @@
 #include <fcitx/statusarea.h>
 #include <fcitx/userinterfacemanager.h>
 
+#include <dbus_public.h>
+
 #include "database_manager.h"
 #include "hourly_count_buffer.h"
+#include "input_counter_dbus.h"
+#include "statistics_backend.h"
 
 namespace inputcounter {
 
@@ -50,11 +55,25 @@ InputCounterAddon::InputCounterAddon(fcitx::AddonManager *manager)
   try {
     auto database = std::make_unique<DatabaseManager>();
     auto hourlyCounts = std::make_unique<HourlyCountBuffer>(*database);
+    auto statistics =
+        std::make_unique<StatisticsBackend>(*database, *hourlyCounts);
     database_ = std::move(database);
     hourlyCounts_ = std::move(hourlyCounts);
+    statistics_ = std::move(statistics);
   } catch (const std::exception &error) {
     FCITX_ERROR() << "inputcounter could not open the statistics database: "
                   << error.what();
+  }
+
+  dbusObject_ = std::make_unique<InputCounterDBus>(statistics_.get());
+  auto *dbusAddon = manager->addon("dbus");
+  auto *bus = dbusAddon == nullptr ? nullptr
+                                   : dbusAddon->call<fcitx::IDBusModule::bus>();
+  if (bus == nullptr ||
+      !bus->addObjectVTable("/inputcounter", "org.fcitx.Fcitx.InputCounter1",
+                            *dbusObject_)) {
+    throw std::runtime_error(
+        "inputcounter could not register its D-Bus interface");
   }
 
   action_.setIcon("view-statistics");

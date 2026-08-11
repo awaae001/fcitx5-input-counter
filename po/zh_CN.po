@@ -122,5 +122,11 @@ msgstr "清空统计失败：%1"
 msgid "Failed to read statistics: %1"
 msgstr "读取统计失败：%1"
 
+msgid "Data unavailable"
+msgstr "数据不可用"
+
+msgid "Connected"
+msgstr "已连接"
+
 msgid "No data recorded yet"
 msgstr "暂无记录"

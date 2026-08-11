@@ -26,6 +26,8 @@ namespace inputcounter {
 
 class DatabaseManager;
 class HourlyCountBuffer;
+class InputCounterDBus;
+class StatisticsBackend;
 
 /// Counts text handled by Fcitx, persists hourly totals in SQLite, and
 /// launches the statistics viewer from its status-area button.
@@ -55,6 +57,7 @@ private:
   InputCounterSettings settings_;
   std::unique_ptr<DatabaseManager> database_;
   std::unique_ptr<HourlyCountBuffer> hourlyCounts_;
+  std::unique_ptr<StatisticsBackend> statistics_;
   QuickCounter quickCounter_;
   fcitx::SimpleAction action_;
   std::unique_ptr<fcitx::EventSourceTime> flushEvent_;
@@ -64,6 +67,7 @@ private:
   std::unique_ptr<fcitx::HandlerTableEntry<fcitx::EventHandler>>
       commitWithCursorWatcher_;
   std::unique_ptr<fcitx::HandlerTableEntry<fcitx::EventHandler>> keyWatcher_;
+  std::unique_ptr<InputCounterDBus> dbusObject_;
 };
 
 } // namespace inputcounter
