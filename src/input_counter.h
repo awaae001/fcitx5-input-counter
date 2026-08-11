@@ -50,8 +50,6 @@ private:
   void count(std::string_view text);
   void flush();
   void addStatusActions(fcitx::InputContext *inputContext);
-  void applySettings();
-  void openViewer();
 
   fcitx::Instance *instance_;
   InputCounterSettings settings_;

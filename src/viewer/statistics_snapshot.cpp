@@ -7,7 +7,6 @@
 #include <chrono>
 #include <ctime>
 #include <stdexcept>
-#include <utility>
 
 #include <QDate>
 #include <QDateTime>
@@ -29,38 +28,6 @@ constexpr int kSixHourBars = 4 * kWeek;
 constexpr int kMonth = 30;
 constexpr int kYearMonths = 12;
 
-std::int64_t dayStart(std::int64_t timestamp) {
-  const auto time = static_cast<std::time_t>(timestamp);
-  std::tm local{};
-  localtime_r(&time, &local);
-  local.tm_hour = 0;
-  local.tm_min = 0;
-  local.tm_sec = 0;
-  return static_cast<std::int64_t>(std::mktime(&local));
-}
-
-QString bucketLabel(const TimeBucket &bucket, ChartScale scale) {
-  switch (scale) {
-  case ChartScale::OneHour:
-  case ChartScale::SixHours:
-  case ChartScale::TwelveHours:
-    return bucket.start.toString(QStringLiteral("MM-dd HH:mm"));
-  case ChartScale::OneDay:
-  case ChartScale::OneWeek:
-    return bucket.start.toString(QStringLiteral("yyyy-MM-dd"));
-  case ChartScale::OneMonth:
-    return bucket.start.toString(QStringLiteral("yyyy-MM"));
-  }
-  return {};
-}
-
-ChartBucket dateBucket(const QDate &date, QString format) {
-  const QDateTime start(date, QTime(0, 0));
-  const QDateTime end(date.addDays(1), QTime(0, 0));
-  return {{start.toSecsSinceEpoch(), end.toSecsSinceEpoch()},
-          start.toString(std::move(format))};
-}
-
 } // namespace
 
 std::int64_t nowSeconds() {
@@ -70,7 +37,13 @@ std::int64_t nowSeconds() {
 }
 
 SummaryQuery summaryQuery(std::int64_t now) {
-  const auto today = dayStart(now);
+  const auto time = static_cast<std::time_t>(now);
+  std::tm local{};
+  localtime_r(&time, &local);
+  local.tm_hour = 0;
+  local.tm_min = 0;
+  local.tm_sec = 0;
+  const auto today = static_cast<std::int64_t>(std::mktime(&local));
   return {today, hourStartOf(now - kHours * kHour), today - (kWeek - 1) * kDay};
 }
 
@@ -108,8 +81,12 @@ ChartQuery last30DaysQuery(std::int64_t now) {
   ChartQuery result;
   result.reserve(kMonth);
   for (int offset = kMonth - 1; offset >= 0; --offset) {
-    result.push_back(
-        dateBucket(today.addDays(-offset), QStringLiteral("MM-dd")));
+    const QDateTime start(today.addDays(-offset), QTime(0, 0));
+    const QDateTime end(start.date().addDays(1), QTime(0, 0));
+    result.push_back({
+        {start.toSecsSinceEpoch(), end.toSecsSinceEpoch()},
+        start.toString(QStringLiteral("MM-dd")),
+    });
   }
   return result;
 }
@@ -151,12 +128,28 @@ ChartQuery allTimeQuery(std::int64_t firstHour, std::int64_t now) {
 }
 
 ChartQuery customQuery(const ChartRange &range) {
+  QString labelFormat;
+  switch (range.scale()) {
+  case ChartScale::OneHour:
+  case ChartScale::SixHours:
+  case ChartScale::TwelveHours:
+    labelFormat = QStringLiteral("MM-dd HH:mm");
+    break;
+  case ChartScale::OneDay:
+  case ChartScale::OneWeek:
+    labelFormat = QStringLiteral("yyyy-MM-dd");
+    break;
+  case ChartScale::OneMonth:
+    labelFormat = QStringLiteral("yyyy-MM");
+    break;
+  }
+
   ChartQuery result;
   result.reserve(range.buckets().size());
   for (const auto &bucket : range.buckets()) {
     result.push_back({
         {bucket.start.toSecsSinceEpoch(), bucket.end.toSecsSinceEpoch()},
-        bucketLabel(bucket, range.scale()),
+        bucket.start.toString(labelFormat),
     });
   }
   return result;

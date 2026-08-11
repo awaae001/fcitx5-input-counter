@@ -26,36 +26,8 @@ constexpr int kBottomMargin = 26;
 constexpr int kRightMargin = 8;
 constexpr int kLabelGap = 6;
 
-double niceMax(double value) {
-  if (value <= 0.0) {
-    return 1.0;
-  }
-
-  const double magnitude = std::pow(10.0, std::floor(std::log10(value)));
-  const double fraction = value / magnitude;
-  double result = 10.0;
-  if (fraction <= 1.0) {
-    result = 1.0;
-  } else if (fraction <= 2.0) {
-    result = 2.0;
-  } else if (fraction <= 2.5) {
-    result = 2.5;
-  } else if (fraction <= 5.0) {
-    result = 5.0;
-  }
-  return result * magnitude;
-}
-
 QString format(double value) {
   return QLocale().toString(static_cast<qulonglong>(value));
-}
-
-std::uint64_t maxValue(const Bars &data) {
-  const auto it = std::max_element(
-      data.begin(), data.end(), [](const auto &left, const auto &right) {
-        return left.second < right.second;
-      });
-  return it == data.end() ? 0 : it->second;
 }
 
 double barHeight(double value, double axisMax, double plotHeight) {
@@ -78,15 +50,6 @@ void paintGrid(QPainter &painter, const QRectF &plot, int leftMargin,
                metrics.height()),
         Qt::AlignRight | Qt::AlignVCenter, format(ratio * axisMax));
   }
-}
-
-void paintAxes(QPainter &painter, const QRectF &plot,
-               const QPalette &palette) {
-  painter.setPen(QPen(palette.color(QPalette::Dark), 1));
-  painter.drawLine(QPointF(plot.left(), plot.bottom()),
-                   QPointF(plot.right(), plot.bottom()));
-  painter.drawLine(QPointF(plot.left(), plot.top()),
-                   QPointF(plot.left(), plot.bottom()));
 }
 
 void paintBars(QPainter &painter, const Bars &data, const QRectF &plot,
@@ -165,14 +128,31 @@ BarChartGeometry paint(QPainter &painter, const QRect &bounds,
   painter.setRenderHint(QPainter::Antialiasing);
   painter.fillRect(bounds, palette.color(QPalette::Base));
 
-  const auto maximum = maxValue(data);
+  const auto maximumEntry = std::max_element(
+      data.begin(), data.end(), [](const auto &left, const auto &right) {
+        return left.second < right.second;
+      });
+  const auto maximum = maximumEntry == data.end() ? 0 : maximumEntry->second;
   if (data.empty() || maximum == 0) {
     painter.setPen(palette.color(QPalette::PlaceholderText));
     painter.drawText(bounds, Qt::AlignCenter, IC_("No data recorded yet"));
     return {};
   }
 
-  const double axisMax = niceMax(static_cast<double>(maximum));
+  const auto value = static_cast<double>(maximum);
+  const double magnitude = std::pow(10.0, std::floor(std::log10(value)));
+  const double fraction = value / magnitude;
+  double roundedFraction = 10.0;
+  if (fraction <= 1.0) {
+    roundedFraction = 1.0;
+  } else if (fraction <= 2.0) {
+    roundedFraction = 2.0;
+  } else if (fraction <= 2.5) {
+    roundedFraction = 2.5;
+  } else if (fraction <= 5.0) {
+    roundedFraction = 5.0;
+  }
+  const double axisMax = roundedFraction * magnitude;
   const QFontMetrics metrics = painter.fontMetrics();
   const int leftMargin =
       metrics.horizontalAdvance(format(axisMax)) + 2 * kLabelGap;
@@ -185,7 +165,11 @@ BarChartGeometry paint(QPainter &painter, const QRect &bounds,
 
   const double slotWidth = plot.width() / static_cast<int>(data.size());
   paintGrid(painter, plot, leftMargin, axisMax, metrics, palette);
-  paintAxes(painter, plot, palette);
+  painter.setPen(QPen(palette.color(QPalette::Dark), 1));
+  painter.drawLine(QPointF(plot.left(), plot.bottom()),
+                   QPointF(plot.right(), plot.bottom()));
+  painter.drawLine(QPointF(plot.left(), plot.top()),
+                   QPointF(plot.left(), plot.bottom()));
   paintBars(painter, data, plot, axisMax, slotWidth, hoverIndex, palette);
   paintHover(painter, data, plot, axisMax, slotWidth, hoverIndex, metrics,
              palette);

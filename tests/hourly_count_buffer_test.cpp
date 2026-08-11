@@ -59,7 +59,7 @@ void aggregates_counts_by_hour() {
   buffer.add(3610, 4);
   buffer.flush();
 
-  const auto rows = manager.allHourly();
+  const auto rows = manager.hourlyBetween(0, 2 * 60 * 60);
   require(rows.size() == 2, "counts were not split into hourly buckets");
   require(rows[0].hour == 0 && rows[0].chars == 2,
           "first hourly bucket was incorrect");

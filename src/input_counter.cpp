@@ -81,14 +81,17 @@ InputCounterAddon::InputCounterAddon(fcitx::AddonManager *manager)
   action_.setLongText(_("Committed characters are counted by hour and stored "
                         "locally; no text is retained."));
   action_.connect<fcitx::SimpleAction::Activated>(
-      [this](fcitx::InputContext *) { openViewer(); });
+      [this](fcitx::InputContext *) {
+        flush();
+        fcitx::startProcess({INPUT_COUNTER_VIEWER_PATH});
+      });
 
   auto &uiManager = instance_->userInterfaceManager();
   if (!action_.registerAction("inputcounter", &uiManager)) {
     throw std::runtime_error(
         "inputcounter could not register its status action");
   }
-  applySettings();
+  quickCounter_.setVisible(settings_.quickCounterEnabled());
 
   instance_->inputContextManager().foreach (
       [this](fcitx::InputContext *inputContext) {
@@ -149,12 +152,12 @@ InputCounterAddon::~InputCounterAddon() { flush(); }
 
 void InputCounterAddon::reloadConfig() {
   settings_.reload();
-  applySettings();
+  quickCounter_.setVisible(settings_.quickCounterEnabled());
 }
 
 void InputCounterAddon::setConfig(const fcitx::RawConfig &config) {
   settings_.set(config);
-  applySettings();
+  quickCounter_.setVisible(settings_.quickCounterEnabled());
 }
 
 void InputCounterAddon::count(std::string_view text) {
@@ -189,15 +192,6 @@ void InputCounterAddon::addStatusActions(fcitx::InputContext *inputContext) {
   auto &statusArea = inputContext->statusArea();
   statusArea.addAction(fcitx::StatusGroup::AfterInputMethod, &action_);
   quickCounter_.attach(*inputContext);
-}
-
-void InputCounterAddon::applySettings() {
-  quickCounter_.setVisible(settings_.quickCounterEnabled());
-}
-
-void InputCounterAddon::openViewer() {
-  flush();
-  fcitx::startProcess({INPUT_COUNTER_VIEWER_PATH});
 }
 
 } // namespace inputcounter

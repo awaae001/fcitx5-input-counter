@@ -23,12 +23,10 @@ public:
   explicit InputCounterDBus(StatisticsBackend *backend) noexcept;
 
 private:
-  using HourlyValue = fcitx::dbus::DBusStruct<std::int64_t, std::uint64_t>;
   using Bucket = fcitx::dbus::DBusStruct<std::int64_t, std::int64_t>;
   using Summary = std::tuple<std::uint64_t, std::uint64_t, std::uint64_t,
                              std::uint64_t, bool, std::int64_t>;
 
-  std::vector<HourlyValue> getData();
   Summary getSummary(std::int64_t todayStart, std::int64_t last24HoursStart,
                      std::int64_t last7DaysStart);
   std::vector<std::uint64_t>
@@ -37,7 +35,6 @@ private:
 
   StatisticsBackend &requireBackend() const;
 
-  FCITX_OBJECT_VTABLE_METHOD(getData, "GetData", "", "a(xt)");
   FCITX_OBJECT_VTABLE_METHOD(getSummary, "GetSummary", "xxx", "ttttbx");
   FCITX_OBJECT_VTABLE_METHOD(getBucketCounts, "GetBucketCounts", "a(xx)", "at");
   FCITX_OBJECT_VTABLE_METHOD(reset, "Reset", "", "");

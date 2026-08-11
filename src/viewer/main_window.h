@@ -29,7 +29,6 @@ private:
   void editCustomRange();
   void confirmReset();
   void setBusy(bool busy);
-  void setConnected();
   void setUnavailable();
   void finishOperation();
   void clearDisplay();

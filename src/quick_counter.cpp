@@ -20,11 +20,17 @@ QuickCounter::QuickCounter(fcitx::Instance &instance) : instance_(instance) {
   separatorAction_.setSeparator(true);
 
   toggleRecordingAction_.connect<fcitx::SimpleAction::Activated>(
-      [this](fcitx::InputContext *) { toggleRecording(); });
+      [this](fcitx::InputContext *) {
+        recording_ = !recording_;
+        updateActions();
+      });
 
   resetAction_.setShortText(_("Reset"));
   resetAction_.connect<fcitx::SimpleAction::Activated>(
-      [this](fcitx::InputContext *) { reset(); });
+      [this](fcitx::InputContext *) {
+        chars_ = 0;
+        updateActions();
+      });
 
   auto &uiManager = instance_.userInterfaceManager();
   if (!separatorAction_.registerAction("inputcounter-session-separator",
@@ -66,7 +72,11 @@ void QuickCounter::setVisible(bool visible) {
 
   instance_.inputContextManager().foreach (
       [this](fcitx::InputContext *inputContext) {
-        detach(*inputContext);
+        auto &statusArea = inputContext->statusArea();
+        statusArea.removeAction(&separatorAction_);
+        statusArea.removeAction(&countAction_);
+        statusArea.removeAction(&toggleRecordingAction_);
+        statusArea.removeAction(&resetAction_);
         attach(*inputContext);
         return true;
       });
@@ -78,24 +88,6 @@ void QuickCounter::record(std::uint64_t chars) {
   }
 
   chars_ += chars;
-  updateActions();
-}
-
-void QuickCounter::detach(fcitx::InputContext &inputContext) {
-  auto &statusArea = inputContext.statusArea();
-  statusArea.removeAction(&separatorAction_);
-  statusArea.removeAction(&countAction_);
-  statusArea.removeAction(&toggleRecordingAction_);
-  statusArea.removeAction(&resetAction_);
-}
-
-void QuickCounter::toggleRecording() {
-  recording_ = !recording_;
-  updateActions();
-}
-
-void QuickCounter::reset() {
-  chars_ = 0;
   updateActions();
 }
 

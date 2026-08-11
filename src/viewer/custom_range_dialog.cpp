@@ -23,41 +23,6 @@
 
 namespace inputcounter {
 
-namespace {
-
-QString rangeErrorMessage(ChartRangeError error) {
-  switch (error) {
-  case ChartRangeError::InvalidTime:
-    return IC_("Choose valid start and end times.");
-  case ChartRangeError::EndNotAfterStart:
-    return IC_("Start time must be earlier than end time.");
-  case ChartRangeError::TooManyBuckets:
-    return QString(
-               IC_("The selected range contains more than %1 bars. Choose a "
-                   "coarser time scale or a shorter range."))
-        .arg(ChartRange::kMaximumBuckets);
-  }
-  return {};
-}
-
-QDateTime defaultEnd() {
-  const auto now = QDateTime::currentDateTime();
-  auto end = now;
-  end.setTime(QTime(now.time().hour(), 0));
-  return end < now ? end.addSecs(60 * 60) : end;
-}
-
-void populateScales(QComboBox &scale) {
-  scale.addItem(IC_("1 hour"), static_cast<int>(ChartScale::OneHour));
-  scale.addItem(IC_("6 hours"), static_cast<int>(ChartScale::SixHours));
-  scale.addItem(IC_("12 hours"), static_cast<int>(ChartScale::TwelveHours));
-  scale.addItem(IC_("1 day"), static_cast<int>(ChartScale::OneDay));
-  scale.addItem(IC_("1 week"), static_cast<int>(ChartScale::OneWeek));
-  scale.addItem(IC_("1 month"), static_cast<int>(ChartScale::OneMonth));
-}
-
-} // namespace
-
 std::optional<ChartRange> chooseCustomRange(QWidget &parent,
                                             const ChartRange *current) {
   QDialog dialog(&parent);
@@ -75,14 +40,24 @@ std::optional<ChartRange> chooseCustomRange(QWidget &parent,
   }
 
   auto *scale = new QComboBox(&dialog);
-  populateScales(*scale);
+  scale->addItem(IC_("1 hour"), static_cast<int>(ChartScale::OneHour));
+  scale->addItem(IC_("6 hours"), static_cast<int>(ChartScale::SixHours));
+  scale->addItem(IC_("12 hours"), static_cast<int>(ChartScale::TwelveHours));
+  scale->addItem(IC_("1 day"), static_cast<int>(ChartScale::OneDay));
+  scale->addItem(IC_("1 week"), static_cast<int>(ChartScale::OneWeek));
+  scale->addItem(IC_("1 month"), static_cast<int>(ChartScale::OneMonth));
   if (current != nullptr) {
     start->setDateTime(current->start());
     end->setDateTime(current->end());
     scale->setCurrentIndex(
         scale->findData(static_cast<int>(current->scale())));
   } else {
-    const auto rangeEnd = defaultEnd();
+    const auto now = QDateTime::currentDateTime();
+    auto rangeEnd = now;
+    rangeEnd.setTime(QTime(now.time().hour(), 0));
+    if (rangeEnd < now) {
+      rangeEnd = rangeEnd.addSecs(60 * 60);
+    }
     start->setDateTime(rangeEnd.addDays(-7));
     end->setDateTime(rangeEnd);
     scale->setCurrentIndex(
@@ -113,7 +88,20 @@ std::optional<ChartRange> chooseCustomRange(QWidget &parent,
     auto result = ChartRange::create(start->dateTime(), end->dateTime(),
                                      selectedScale);
     if (const auto *rangeError = std::get_if<ChartRangeError>(&result)) {
-      error->setText(rangeErrorMessage(*rangeError));
+      switch (*rangeError) {
+      case ChartRangeError::InvalidTime:
+        error->setText(IC_("Choose valid start and end times."));
+        break;
+      case ChartRangeError::EndNotAfterStart:
+        error->setText(IC_("Start time must be earlier than end time."));
+        break;
+      case ChartRangeError::TooManyBuckets:
+        error->setText(
+            QString(IC_("The selected range contains more than %1 bars. "
+                        "Choose a coarser time scale or a shorter range."))
+                .arg(ChartRange::kMaximumBuckets));
+        break;
+      }
       error->show();
       return;
     }

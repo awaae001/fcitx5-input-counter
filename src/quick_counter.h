@@ -36,9 +36,6 @@ public:
   void record(std::uint64_t chars);
 
 private:
-  void detach(fcitx::InputContext &inputContext);
-  void toggleRecording();
-  void reset();
   void updateActions();
 
   fcitx::Instance &instance_;

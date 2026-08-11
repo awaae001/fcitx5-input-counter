@@ -6,7 +6,6 @@
 
 #include <exception>
 #include <stdexcept>
-#include <utility>
 
 #include <fcitx-utils/dbus/objectvtable.h>
 
@@ -35,18 +34,6 @@ template <typename Function> auto translateErrors(Function &&function) {
 
 InputCounterDBus::InputCounterDBus(StatisticsBackend *backend) noexcept
     : backend_(backend) {}
-
-std::vector<InputCounterDBus::HourlyValue> InputCounterDBus::getData() {
-  return translateErrors([this] {
-    const auto rows = requireBackend().data();
-    std::vector<HourlyValue> result;
-    result.reserve(rows.size());
-    for (const auto &row : rows) {
-      result.emplace_back(row.hour, row.chars);
-    }
-    return result;
-  });
-}
 
 InputCounterDBus::Summary
 InputCounterDBus::getSummary(std::int64_t todayStart,

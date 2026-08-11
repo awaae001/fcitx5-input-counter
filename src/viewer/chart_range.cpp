@@ -18,32 +18,6 @@ QDateTime floorToHour(QDateTime value) {
   return value;
 }
 
-QDateTime ceilToHour(const QDateTime &value) {
-  auto result = floorToHour(value);
-  if (result < value) {
-    result = result.addSecs(60 * 60);
-  }
-  return result;
-}
-
-QDateTime advance(const QDateTime &value, ChartScale scale) {
-  switch (scale) {
-  case ChartScale::OneHour:
-    return value.addSecs(60 * 60);
-  case ChartScale::SixHours:
-    return value.addSecs(6 * 60 * 60);
-  case ChartScale::TwelveHours:
-    return value.addSecs(12 * 60 * 60);
-  case ChartScale::OneDay:
-    return value.addDays(1);
-  case ChartScale::OneWeek:
-    return value.addDays(7);
-  case ChartScale::OneMonth:
-    return value.addMonths(1);
-  }
-  return {};
-}
-
 } // namespace
 
 ChartRange::ChartRange(ChartScale scale, std::vector<TimeBucket> buckets)
@@ -56,7 +30,11 @@ ChartRange::create(QDateTime start, QDateTime end, ChartScale scale) {
   }
 
   start = floorToHour(std::move(start));
-  end = ceilToHour(std::move(end));
+  const auto requestedEnd = end;
+  end = floorToHour(std::move(end));
+  if (end < requestedEnd) {
+    end = end.addSecs(60 * 60);
+  }
   if (end <= start) {
     return ChartRangeError::EndNotAfterStart;
   }
@@ -69,7 +47,27 @@ ChartRange::create(QDateTime start, QDateTime end, ChartScale scale) {
       return ChartRangeError::TooManyBuckets;
     }
 
-    const auto next = advance(cursor, scale);
+    QDateTime next;
+    switch (scale) {
+    case ChartScale::OneHour:
+      next = cursor.addSecs(60 * 60);
+      break;
+    case ChartScale::SixHours:
+      next = cursor.addSecs(6 * 60 * 60);
+      break;
+    case ChartScale::TwelveHours:
+      next = cursor.addSecs(12 * 60 * 60);
+      break;
+    case ChartScale::OneDay:
+      next = cursor.addDays(1);
+      break;
+    case ChartScale::OneWeek:
+      next = cursor.addDays(7);
+      break;
+    case ChartScale::OneMonth:
+      next = cursor.addMonths(1);
+      break;
+    }
     if (!next.isValid() || next <= cursor) {
       return ChartRangeError::InvalidTime;
     }

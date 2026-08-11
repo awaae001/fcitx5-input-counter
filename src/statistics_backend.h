@@ -8,7 +8,6 @@
 #include <cstdint>
 #include <vector>
 
-#include "hourly_count.h"
 #include "statistics_types.h"
 
 namespace inputcounter {
@@ -22,9 +21,6 @@ public:
   /// Borrows database and pendingCounts for this backend's lifetime.
   StatisticsBackend(DatabaseManager &database,
                     HourlyCountBuffer &pendingCounts) noexcept;
-
-  /// Flushes pending counts and returns every hourly value.
-  std::vector<HourlyCount> data();
 
   /// Flushes pending counts and returns overview aggregates.
   StatisticsSummary summary(std::int64_t todayStart,
@@ -41,8 +37,6 @@ public:
   void reset();
 
 private:
-  void flush();
-
   DatabaseManager &database_;
   HourlyCountBuffer &pendingCounts_;
 };

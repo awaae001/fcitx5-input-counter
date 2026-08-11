@@ -42,31 +42,6 @@ struct SelectedChart final {
   ChartQuery query;
 };
 
-SelectedChart selectedChart(MainWindowUi &ui, const ChartRange *customRange,
-                            const StatisticsSummary &summary,
-                            std::int64_t now) {
-  if (ui.chartStack.currentWidget() == &ui.customChart &&
-      customRange != nullptr) {
-    return {&ui.customChart, customQuery(*customRange)};
-  }
-
-  switch (ui.chartTabs.currentIndex()) {
-  case 1:
-    return {&ui.weekChart, last7DaysQuery(now)};
-  case 2:
-    return {&ui.monthChart, last30DaysQuery(now)};
-  case 3:
-    return {&ui.lastYearChart, last12MonthsQuery(now)};
-  case 4:
-    return {&ui.allTimeChart, summary.hasData
-                                  ? allTimeQuery(summary.firstHour, now)
-                                  : ChartQuery{}};
-  case 0:
-  default:
-    return {&ui.hoursChart, last24HoursQuery(now)};
-  }
-}
-
 } // namespace
 
 MainWindow::MainWindow(QWidget *parent)
@@ -119,7 +94,28 @@ void MainWindow::refresh() {
     }
 
     const auto summary = std::get<StatisticsSummary>(result);
-    const auto selected = selectedChart(*ui_, customRange_.get(), summary, now);
+    auto selected = [this, &summary, now]() -> SelectedChart {
+      if (ui_->chartStack.currentWidget() == &ui_->customChart &&
+          customRange_ != nullptr) {
+        return {&ui_->customChart, customQuery(*customRange_)};
+      }
+
+      switch (ui_->chartTabs.currentIndex()) {
+      case 1:
+        return {&ui_->weekChart, last7DaysQuery(now)};
+      case 2:
+        return {&ui_->monthChart, last30DaysQuery(now)};
+      case 3:
+        return {&ui_->lastYearChart, last12MonthsQuery(now)};
+      case 4:
+        return {&ui_->allTimeChart,
+                summary.hasData ? allTimeQuery(summary.firstHour, now)
+                                : ChartQuery{}};
+      case 0:
+      default:
+        return {&ui_->hoursChart, last24HoursQuery(now)};
+      }
+    }();
     client_->getBucketCounts(
         ranges(selected.query), [this, summary, selected = std::move(selected)](
                                     BucketResult bucketResult) mutable {
@@ -142,10 +138,13 @@ void MainWindow::refresh() {
 
           ui_->totalValue.setText(format(summary.total));
           ui_->todayValue.setText(format(summary.today));
-              ui_->last24HoursValue.setText(format(summary.last24Hours));
-              ui_->last7DaysValue.setText(format(summary.last7Days));
-              setConnected();
-              hasSnapshot_ = true;
+          ui_->last24HoursValue.setText(format(summary.last24Hours));
+          ui_->last7DaysValue.setText(format(summary.last7Days));
+          available_ = true;
+          ui_->unavailableLabel.hide();
+          ui_->connectionLabel.setText(
+              connectionText("#2e7d32", IC_("Connected")));
+          hasSnapshot_ = true;
           finishOperation();
         });
   });
@@ -204,12 +203,6 @@ void MainWindow::confirmReset() {
 void MainWindow::setBusy(bool busy) {
   ui_->refreshButton.setEnabled(!busy);
   ui_->clearButton.setEnabled(!busy && available_);
-}
-
-void MainWindow::setConnected() {
-  available_ = true;
-  ui_->unavailableLabel.hide();
-  ui_->connectionLabel.setText(connectionText("#2e7d32", IC_("Connected")));
 }
 
 void MainWindow::setUnavailable() {

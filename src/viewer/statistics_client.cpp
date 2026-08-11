@@ -71,53 +71,6 @@ QString errorText(const QDBusMessage &reply) {
   return QStringLiteral("D-Bus request failed");
 }
 
-std::variant<StatisticsSummary, QString>
-parseSummary(const QDBusMessage &reply) {
-  if (reply.type() == QDBusMessage::ErrorMessage) {
-    return errorText(reply);
-  }
-  const auto arguments = reply.arguments();
-  if (arguments.size() != 6) {
-    return QStringLiteral("Invalid GetSummary response");
-  }
-  return StatisticsSummary{
-      arguments[0].toULongLong(), arguments[1].toULongLong(),
-      arguments[2].toULongLong(), arguments[3].toULongLong(),
-      arguments[4].toBool(),      arguments[5].toLongLong(),
-  };
-}
-
-std::variant<std::vector<std::uint64_t>, QString>
-parseBucketCounts(const QDBusMessage &reply) {
-  if (reply.type() == QDBusMessage::ErrorMessage) {
-    return errorText(reply);
-  }
-  const auto arguments = reply.arguments();
-  if (arguments.size() != 1 || !arguments[0].canConvert<QDBusArgument>()) {
-    return QStringLiteral("Invalid GetBucketCounts response");
-  }
-
-  const auto dbusArgument = arguments[0].value<QDBusArgument>();
-  std::vector<std::uint64_t> result;
-  dbusArgument.beginArray();
-  while (!dbusArgument.atEnd()) {
-    qulonglong value = 0;
-    dbusArgument >> value;
-    result.push_back(value);
-  }
-  dbusArgument.endArray();
-  return result;
-}
-
-wire::TimeRanges wireRanges(const std::vector<TimeRange> &ranges) {
-  wire::TimeRanges result;
-  result.reserve(static_cast<qsizetype>(ranges.size()));
-  for (const auto &range : ranges) {
-    result.push_back({range.start, range.end});
-  }
-  return result;
-}
-
 } // namespace
 
 StatisticsClient::StatisticsClient(QObject *parent) : QObject(parent) {
@@ -139,7 +92,21 @@ void StatisticsClient::getSummary(const SummaryQuery &summary,
   connect(summaryWatcher, &QDBusPendingCallWatcher::finished, this,
           [callback =
                std::move(callback)](QDBusPendingCallWatcher *watcher) mutable {
-            callback(parseSummary(watcher->reply()));
+            const auto reply = watcher->reply();
+            if (reply.type() == QDBusMessage::ErrorMessage) {
+              callback(errorText(reply));
+            } else {
+              const auto arguments = reply.arguments();
+              if (arguments.size() != 6) {
+                callback(QStringLiteral("Invalid GetSummary response"));
+              } else {
+                callback(StatisticsSummary{
+                    arguments[0].toULongLong(), arguments[1].toULongLong(),
+                    arguments[2].toULongLong(), arguments[3].toULongLong(),
+                    arguments[4].toBool(), arguments[5].toLongLong(),
+                });
+              }
+            }
             watcher->deleteLater();
           });
 }
@@ -148,14 +115,40 @@ void StatisticsClient::getBucketCounts(
     const std::vector<TimeRange> &ranges,
     std::function<void(BucketResult)> callback) {
   auto call = methodCall("GetBucketCounts");
-  call << QVariant::fromValue(wireRanges(ranges));
+  wire::TimeRanges wireRanges;
+  wireRanges.reserve(static_cast<qsizetype>(ranges.size()));
+  for (const auto &range : ranges) {
+    wireRanges.push_back({range.start, range.end});
+  }
+  call << QVariant::fromValue(wireRanges);
   auto *watcher = new QDBusPendingCallWatcher(
       QDBusConnection::sessionBus().asyncCall(call, kTimeoutMilliseconds),
       this);
   connect(watcher, &QDBusPendingCallWatcher::finished, this,
           [callback =
                std::move(callback)](QDBusPendingCallWatcher *finished) mutable {
-            callback(parseBucketCounts(finished->reply()));
+            const auto reply = finished->reply();
+            if (reply.type() == QDBusMessage::ErrorMessage) {
+              callback(errorText(reply));
+            } else {
+              const auto arguments = reply.arguments();
+              if (arguments.size() != 1 ||
+                  !arguments[0].canConvert<QDBusArgument>()) {
+                callback(
+                    QStringLiteral("Invalid GetBucketCounts response"));
+              } else {
+                auto dbusArgument = arguments[0].value<QDBusArgument>();
+                std::vector<std::uint64_t> result;
+                dbusArgument.beginArray();
+                while (!dbusArgument.atEnd()) {
+                  qulonglong value = 0;
+                  dbusArgument >> value;
+                  result.push_back(value);
+                }
+                dbusArgument.endArray();
+                callback(std::move(result));
+              }
+            }
             finished->deleteLater();
           });
 }
