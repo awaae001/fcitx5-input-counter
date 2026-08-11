@@ -12,9 +12,7 @@ The addon adds an `Input Counter` button to the Fcitx status area. Clicking it o
   ordinary English input.
 - Counts Unicode code points, including whitespace and punctuation.
 - Does not count control shortcuts or non-text keys.
-- Persists hourly totals to
-  `$XDG_DATA_HOME/fcitx5/input-counter/stats.db` (usually
-  `~/.local/share/fcitx5/input-counter/stats.db`).
+- Persists hourly totals to `$XDG_DATA_HOME/fcitx5/input-counter/stats.db` (usually `~/.local/share/fcitx5/input-counter/stats.db`).
 - Counts are buffered in memory and flushed to the database every 60 seconds,
   on shutdown, and whenever the statistics button is clicked.
 
