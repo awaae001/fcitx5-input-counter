@@ -13,21 +13,10 @@ The addon adds an `Input Counter` button to the Fcitx status area. Clicking it o
 - Counts Unicode code points, including whitespace and punctuation.
 - Does not count control shortcuts or non-text keys.
 - Persists hourly totals to
-  `$XDG_DATA_HOME/fcitx5/input-counter/stats.db` (usually `~/.local/share/fcitx5/input-counter/stats.db`) with this schema:
-
+  `$XDG_DATA_HOME/fcitx5/input-counter/stats.db` (usually
+  `~/.local/share/fcitx5/input-counter/stats.db`).
 - Counts are buffered in memory and flushed to the database every 60 seconds,
   on shutdown, and whenever the statistics button is clicked.
-- The addon is the sole owner of the SQLite database. The viewer requests
-  overview values and bounded chart buckets through
-  `org.fcitx.Fcitx.InputCounter1` on the Fcitx session bus. It refreshes the
-  active chart every 60 seconds and stays open with a data-unavailable state
-  while the addon is unreachable. Normal refreshes use bounded summary and
-  bucket queries; `GetData` remains available for explicit full-history
-  export.
-- The status area provides a manually started, pausable in-memory counter
-  with a reset control. It does not affect the persisted statistics, resets
-  when Fcitx restarts, and is never written to the database. Its first-level
-  status actions can be hidden with the `Quick counter` addon setting.
 
 ## Build
 
@@ -43,11 +32,22 @@ Gettext.
 
 ## Install
 
-The addon library must be installed in an Fcitx addon directory. A normal system installation uses:
+### Arch Linux (AUR)
+
+Install
+[`fcitx5-input-counter`](https://aur.archlinux.org/packages/fcitx5-input-counter)
+with an AUR helper, for example:
+
+```sh
+paru -S fcitx5-input-counter
+```
+
+### From source
+
+The addon library must be installed in an Fcitx addon directory. A normal
+system installation uses:
 
 ```sh
 sudo cmake --install build
 fcitx5 -r
 ```
-
-Use `DESTDIR` when building a distribution package instead of installing directly into the system.
