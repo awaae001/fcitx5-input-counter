@@ -29,8 +29,9 @@ public:
 
   /// Flushes pending counts and sums each ordered, non-overlapping range.
   ///
-  /// At most 512 ranges are accepted. Throws std::invalid_argument if a range
-  /// is empty, reversed, or overlaps its predecessor.
+  /// At most kMaximumStatisticsBuckets ranges are accepted. Throws
+  /// std::invalid_argument if a range is empty, reversed, or overlaps its
+  /// predecessor.
   std::vector<std::uint64_t> bucketCounts(const std::vector<TimeRange> &ranges);
 
   /// Deletes persisted and pending statistics.

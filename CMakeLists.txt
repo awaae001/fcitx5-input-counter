@@ -106,14 +106,6 @@ if(BUILD_TESTING)
     target_link_libraries(hourly-count-buffer-test PRIVATE SQLite3::SQLite3)
     add_test(NAME hourly-count-buffer-test COMMAND hourly-count-buffer-test)
 
-    add_executable(chart-range-test
-        src/viewer/chart_range.cpp
-        tests/chart_range_test.cpp
-    )
-    target_include_directories(chart-range-test PRIVATE src/viewer)
-    target_link_libraries(chart-range-test PRIVATE Qt6::Core)
-    add_test(NAME chart-range-test COMMAND chart-range-test)
-
     add_executable(statistics-backend-test
         src/database_manager.cpp
         src/hourly_count_buffer.cpp

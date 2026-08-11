@@ -14,6 +14,7 @@
 namespace {
 
 using inputcounter::DatabaseManager;
+using inputcounter::hourStartOf;
 using inputcounter::HourlyCountBuffer;
 
 void require(bool condition, const char *message) {
@@ -76,7 +77,27 @@ void flushes_each_count_once() {
   buffer.flush();
   buffer.flush();
 
-  require(manager.totalChars() == 5, "a persisted count was flushed twice");
+  require(manager.summary(0, 0, 0).total == 5,
+          "a persisted count was flushed twice");
+}
+
+void ignores_zero_counts() {
+  TemporaryDatabase database;
+  DatabaseManager manager(database.path());
+  HourlyCountBuffer buffer(manager);
+
+  buffer.add(3600, 0);
+  buffer.flush();
+
+  require(manager.hourlyBetween(0, 2 * 60 * 60).empty(),
+          "zero count created an hourly bucket");
+}
+
+void rounds_pre_epoch_timestamps_down() {
+  require(hourStartOf(-1) == -3600,
+          "pre-epoch timestamp was rounded toward zero");
+  require(hourStartOf(-3600) == -3600,
+          "aligned pre-epoch timestamp changed hour");
 }
 
 } // namespace
@@ -84,4 +105,6 @@ void flushes_each_count_once() {
 int main() {
   aggregates_counts_by_hour();
   flushes_each_count_once();
+  ignores_zero_counts();
+  rounds_pre_epoch_timestamps_down();
 }

@@ -167,6 +167,9 @@ void InputCounterAddon::count(std::string_view text) {
     FCITX_WARN() << "inputcounter ignored invalid text";
     return;
   }
+  if (added == 0) {
+    return;
+  }
 
   const auto chars = static_cast<std::uint64_t>(added);
   if (hourlyCounts_ != nullptr) {

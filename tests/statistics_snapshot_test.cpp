@@ -14,6 +14,7 @@ using inputcounter::ChartQuery;
 using inputcounter::last24HoursQuery;
 using inputcounter::makeBars;
 using inputcounter::ranges;
+using inputcounter::summaryQuery;
 
 void require(bool condition, const char *message) {
   if (!condition) {
@@ -22,9 +23,12 @@ void require(bool condition, const char *message) {
 }
 
 void builds_twenty_four_contiguous_hour_buckets() {
-  const auto query = last24HoursQuery(100 * 3600 + 123);
+  constexpr auto now = 100 * 3600 + 123;
+  const auto query = last24HoursQuery(now);
 
   require(query.size() == 24, "hour query did not contain 24 buckets");
+  require(summaryQuery(now).last24HoursStart == query.front().range.start,
+          "summary and chart used different 24-hour windows");
   for (std::size_t index = 0; index < query.size(); ++index) {
     require(query[index].range.end - query[index].range.start == 3600,
             "hour bucket had the wrong duration");

@@ -109,9 +109,11 @@ void paintHover(QPainter &painter, const Bars &data, const QRectF &plot,
   font.setBold(true);
   painter.setFont(font);
   const int textWidth = painter.fontMetrics().horizontalAdvance(text) + 4;
+  const double maximumTextX =
+      std::max(plot.left(), plot.right() - textWidth);
   const double textX =
       std::clamp(slotX + (slotWidth - textWidth) / 2.0, plot.left(),
-                 plot.right() - textWidth);
+                 maximumTextX);
   const double textY =
       std::max(plot.top(), barTop - metrics.height() - 2.0);
 

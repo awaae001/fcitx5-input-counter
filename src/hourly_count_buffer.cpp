@@ -13,6 +13,9 @@ HourlyCountBuffer::HourlyCountBuffer(DatabaseManager &database) noexcept
     : database_(database) {}
 
 void HourlyCountBuffer::add(std::int64_t unixSeconds, std::uint64_t chars) {
+  if (chars == 0) {
+    return;
+  }
   pending_[hourStartOf(unixSeconds)] += chars;
 }
 

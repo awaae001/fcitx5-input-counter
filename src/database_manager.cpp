@@ -10,7 +10,6 @@
 #include <filesystem>
 #include <stdexcept>
 #include <system_error>
-#include <utility>
 
 #include "embedded_sql.h"
 
@@ -32,7 +31,10 @@ public:
   Statement &operator=(const Statement &) = delete;
 
   void bindInt64(int index, std::int64_t value) {
-    sqlite3_bind_int64(stmt_, index, static_cast<sqlite3_int64>(value));
+    if (sqlite3_bind_int64(stmt_, index, static_cast<sqlite3_int64>(value)) !=
+        SQLITE_OK) {
+      throw std::runtime_error(sqlite3_errmsg(db_));
+    }
   }
 
   /// Steps once, expecting SQLITE_DONE.
@@ -72,7 +74,7 @@ void execSql(sqlite3 *db, const char *sql) {
   if (sqlite3_exec(db, sql, nullptr, nullptr, &error) != SQLITE_OK) {
     std::string message = error != nullptr ? error : "unknown SQLite error";
     sqlite3_free(error);
-    throw std::runtime_error(std::move(message));
+    throw std::runtime_error(message);
   }
 }
 
@@ -91,6 +93,10 @@ std::string defaultDatabasePath() {
   base /= "fcitx5/input-counter";
   std::error_code ec;
   std::filesystem::create_directories(base, ec);
+  if (ec) {
+    throw std::filesystem::filesystem_error(
+        "could not create statistics directory", base, ec);
+  }
   return (base / "stats.db").string();
 }
 
@@ -101,7 +107,7 @@ DatabaseManager::DatabaseManager() : DatabaseManager(defaultDatabasePath()) {}
 DatabaseManager::DatabaseManager(const std::string &path) {
   if (sqlite3_open_v2(path.c_str(), &db_,
                       SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE |
-                          SQLITE_OPEN_FULLMUTEX,
+                          SQLITE_OPEN_NOMUTEX,
                       nullptr) != SQLITE_OK) {
     const std::string message =
         db_ != nullptr ? sqlite3_errmsg(db_) : "out of memory";
@@ -139,18 +145,28 @@ void DatabaseManager::addChars(std::int64_t hourStart, std::uint64_t chars) {
   stmt.stepDone();
 }
 
-std::uint64_t DatabaseManager::totalChars() {
-  Statement stmt(db_, "SELECT COALESCE(SUM(chars), 0) FROM stats");
+StatisticsSummary DatabaseManager::summary(std::int64_t todayStart,
+                                           std::int64_t last24HoursStart,
+                                           std::int64_t last7DaysStart) {
+  Statement stmt(
+      db_, "SELECT COALESCE(SUM(chars), 0), "
+           "COALESCE(SUM(chars) FILTER (WHERE hour >= ?1), 0), "
+           "COALESCE(SUM(chars) FILTER (WHERE hour >= ?2), 0), "
+           "COALESCE(SUM(chars) FILTER (WHERE hour >= ?3), 0), MIN(hour) "
+           "FROM stats");
+  stmt.bindInt64(1, hourStartOf(todayStart));
+  stmt.bindInt64(2, hourStartOf(last24HoursStart));
+  stmt.bindInt64(3, hourStartOf(last7DaysStart));
   stmt.stepRow();
-  return static_cast<std::uint64_t>(stmt.columnInt64(0));
-}
-
-std::uint64_t DatabaseManager::charsSince(std::int64_t since) {
-  Statement stmt(db_,
-                 "SELECT COALESCE(SUM(chars), 0) FROM stats WHERE hour >= ?1");
-  stmt.bindInt64(1, hourStartOf(since));
-  stmt.stepRow();
-  return static_cast<std::uint64_t>(stmt.columnInt64(0));
+  const bool hasData = !stmt.columnIsNull(4);
+  return {
+      static_cast<std::uint64_t>(stmt.columnInt64(0)),
+      static_cast<std::uint64_t>(stmt.columnInt64(1)),
+      static_cast<std::uint64_t>(stmt.columnInt64(2)),
+      static_cast<std::uint64_t>(stmt.columnInt64(3)),
+      hasData,
+      hasData ? stmt.columnInt64(4) : 0,
+  };
 }
 
 std::vector<HourlyCount> DatabaseManager::hourlyBetween(std::int64_t start,
@@ -165,15 +181,6 @@ std::vector<HourlyCount> DatabaseManager::hourlyBetween(std::int64_t start,
         {stmt.columnInt64(0), static_cast<std::uint64_t>(stmt.columnInt64(1))});
   }
   return rows;
-}
-
-std::optional<std::int64_t> DatabaseManager::firstHour() {
-  Statement stmt(db_, "SELECT MIN(hour) FROM stats");
-  stmt.stepRow();
-  if (stmt.columnIsNull(0)) {
-    return std::nullopt;
-  }
-  return stmt.columnInt64(0);
 }
 
 void DatabaseManager::reset() { execSql(db_, "DELETE FROM stats"); }

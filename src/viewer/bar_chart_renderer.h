@@ -18,11 +18,8 @@ class QPalette;
 
 namespace inputcounter {
 
-/// Geometry retained by the widget for pointer hit testing.
 struct BarChartGeometry final {
-  /// Last valid plot rectangle.
   QRectF plot;
-  /// Width allocated to one bar and label.
   double slotWidth = 0.0;
 };
 

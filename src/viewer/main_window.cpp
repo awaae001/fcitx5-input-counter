@@ -9,6 +9,7 @@
 #include <utility>
 #include <variant>
 
+#include <QDateTime>
 #include <QLabel>
 #include <QMessageBox>
 #include <QPushButton>
@@ -84,7 +85,7 @@ void MainWindow::refresh() {
 
   operationPending_ = true;
   setBusy(true);
-  const auto now = nowSeconds();
+  const auto now = QDateTime::currentSecsSinceEpoch();
   client_->getSummary(summaryQuery(now), [this, now](SummaryResult result) {
     if (const auto *error = std::get_if<QString>(&result)) {
       Q_UNUSED(error);
@@ -116,9 +117,10 @@ void MainWindow::refresh() {
         return {&ui_->hoursChart, last24HoursQuery(now)};
       }
     }();
+    const auto selectedRanges = ranges(selected.query);
     client_->getBucketCounts(
-        ranges(selected.query), [this, summary, selected = std::move(selected)](
-                                    BucketResult bucketResult) mutable {
+        selectedRanges, [this, summary, selected = std::move(selected)](
+                            BucketResult bucketResult) mutable {
           if (const auto *error = std::get_if<QString>(&bucketResult)) {
             Q_UNUSED(error);
             setUnavailable();

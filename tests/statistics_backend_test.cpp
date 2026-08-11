@@ -86,6 +86,36 @@ void sums_ordered_buckets() {
           "bucket totals were incorrect");
 }
 
+void sums_independent_summary_windows() {
+  TemporaryDatabase databasePath;
+  DatabaseManager database(databasePath.path());
+  HourlyCountBuffer pending(database);
+  StatisticsBackend backend(database, pending);
+  pending.add(0, 2);
+  pending.add(3600, 3);
+  pending.add(7200, 5);
+
+  const auto summary = backend.summary(7200, 3600, 0);
+
+  require(summary.total == 10, "total summary count was incorrect");
+  require(summary.today == 5, "daily summary window was incorrect");
+  require(summary.last24Hours == 8,
+          "rolling summary window was incorrect");
+  require(summary.last7Days == 10, "weekly summary window was incorrect");
+}
+
+void reports_empty_summary() {
+  TemporaryDatabase databasePath;
+  DatabaseManager database(databasePath.path());
+  HourlyCountBuffer pending(database);
+  StatisticsBackend backend(database, pending);
+
+  const auto summary = backend.summary(0, 0, 0);
+
+  require(summary.total == 0, "empty summary had a nonzero total");
+  require(!summary.hasData, "empty summary reported stored data");
+}
+
 void rejects_overlapping_buckets() {
   TemporaryDatabase databasePath;
   DatabaseManager database(databasePath.path());
@@ -114,7 +144,7 @@ void discards_pending_counts_on_reset() {
   backend.reset();
   pending.flush();
 
-  require(database.totalChars() == 0,
+  require(database.summary(0, 0, 0).total == 0,
           "pending counts were restored after reset");
 }
 
@@ -123,6 +153,8 @@ void discards_pending_counts_on_reset() {
 int main() {
   includes_pending_counts_in_summary();
   sums_ordered_buckets();
+  sums_independent_summary_windows();
+  reports_empty_summary();
   rejects_overlapping_buckets();
   discards_pending_counts_on_reset();
 }

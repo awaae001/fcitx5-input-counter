@@ -12,8 +12,6 @@
 
 namespace inputcounter {
 
-constexpr std::size_t kMaximumBuckets = 512;
-
 StatisticsBackend::StatisticsBackend(DatabaseManager &database,
                                      HourlyCountBuffer &pendingCounts) noexcept
     : database_(database), pendingCounts_(pendingCounts) {}
@@ -22,20 +20,12 @@ StatisticsSummary StatisticsBackend::summary(std::int64_t todayStart,
                                              std::int64_t last24HoursStart,
                                              std::int64_t last7DaysStart) {
   pendingCounts_.flush();
-  const auto firstHour = database_.firstHour();
-  return {
-      database_.totalChars(),
-      database_.charsSince(todayStart),
-      database_.charsSince(last24HoursStart),
-      database_.charsSince(last7DaysStart),
-      firstHour.has_value(),
-      firstHour.value_or(0),
-  };
+  return database_.summary(todayStart, last24HoursStart, last7DaysStart);
 }
 
 std::vector<std::uint64_t>
 StatisticsBackend::bucketCounts(const std::vector<TimeRange> &ranges) {
-  if (ranges.size() > kMaximumBuckets) {
+  if (ranges.size() > kMaximumStatisticsBuckets) {
     throw std::invalid_argument("too many statistics buckets");
   }
   for (std::size_t index = 0; index < ranges.size(); ++index) {

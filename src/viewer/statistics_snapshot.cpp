@@ -4,8 +4,6 @@
 
 #include "statistics_snapshot.h"
 
-#include <chrono>
-#include <ctime>
 #include <stdexcept>
 
 #include <QDate>
@@ -20,8 +18,7 @@ namespace inputcounter {
 
 namespace {
 
-constexpr std::int64_t kHour = 60 * 60;
-constexpr std::int64_t kDay = 24 * kHour;
+constexpr std::int64_t kHour = 3600;
 constexpr int kHours = 24;
 constexpr int kWeek = 7;
 constexpr int kSixHourBars = 4 * kWeek;
@@ -30,21 +27,13 @@ constexpr int kYearMonths = 12;
 
 } // namespace
 
-std::int64_t nowSeconds() {
-  return std::chrono::duration_cast<std::chrono::seconds>(
-             std::chrono::system_clock::now().time_since_epoch())
-      .count();
-}
-
 SummaryQuery summaryQuery(std::int64_t now) {
-  const auto time = static_cast<std::time_t>(now);
-  std::tm local{};
-  localtime_r(&time, &local);
-  local.tm_hour = 0;
-  local.tm_min = 0;
-  local.tm_sec = 0;
-  const auto today = static_cast<std::int64_t>(std::mktime(&local));
-  return {today, hourStartOf(now - kHours * kHour), today - (kWeek - 1) * kDay};
+  const auto currentDate = QDateTime::fromSecsSinceEpoch(now).date();
+  const QDateTime today(currentDate, QTime(0, 0));
+  const auto last24Hours = hourStartOf(now) - (kHours - 1) * kHour;
+  return {today.toSecsSinceEpoch(), last24Hours,
+          QDateTime(currentDate.addDays(-(kWeek - 1)), QTime(0, 0))
+              .toSecsSinceEpoch()};
 }
 
 ChartQuery last24HoursQuery(std::int64_t now) {
@@ -66,7 +55,7 @@ ChartQuery last7DaysQuery(std::int64_t now) {
   ChartQuery result;
   result.reserve(kSixHourBars);
   for (int offset = kSixHourBars - 1; offset >= 0; --offset) {
-    const auto start = end - (offset + 1) * 6 * kHour;
+    const auto start = end - 6 * kHour * (offset + 1);
     result.push_back({
         {start, start + 6 * kHour},
         QDateTime::fromSecsSinceEpoch(start).toString(
@@ -115,7 +104,9 @@ ChartQuery allTimeQuery(std::int64_t firstHour, std::int64_t now) {
   if (firstYear > currentYear) {
     return result;
   }
-  result.reserve(static_cast<std::size_t>(currentYear - firstYear + 1));
+  const auto yearCount = static_cast<std::int64_t>(currentYear) -
+                         static_cast<std::int64_t>(firstYear) + 1;
+  result.reserve(static_cast<std::size_t>(yearCount));
   for (int year = firstYear; year <= currentYear; ++year) {
     const QDateTime start(QDate(year, 1, 1), QTime(0, 0));
     const QDateTime end(QDate(year + 1, 1, 1), QTime(0, 0));

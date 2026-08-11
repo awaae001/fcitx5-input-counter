@@ -7,20 +7,21 @@
 
 #include <cstdint>
 
-namespace inputcounter {
+namespace inputcounter
+{
 
-/// Rounds a Unix timestamp down to the start of its hour.
-constexpr std::int64_t hourStartOf(std::int64_t unixSeconds) {
-  return unixSeconds - unixSeconds % 3600;
-}
+  /// Rounds a Unix timestamp down to the start of its hour.
+  constexpr std::int64_t hourStartOf(std::int64_t unixSeconds)
+  {
+    const auto remainder = unixSeconds % 3600;
+    return unixSeconds - remainder - (remainder < 0 ? 3600 : 0);
+  }
 
-/// One persisted hourly character count.
-struct HourlyCount final {
-  /// Unix timestamp at the start of the represented hour.
-  std::int64_t hour;
-  /// Number of characters recorded during the represented hour.
-  std::uint64_t chars;
-};
+  struct HourlyCount final
+  {
+    std::int64_t hour;
+    std::uint64_t chars;
+  };
 
 } // namespace inputcounter
 
