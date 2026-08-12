@@ -54,6 +54,12 @@ namespace inputcounter
     static std::variant<ChartRange, ChartRangeError>
     create(QDateTime start, QDateTime end, ChartScale scale);
 
+    /// Returns how many buckets `create` would produce for the same inputs,
+    /// ignoring the kMaximumBuckets limit. Returns 0 for an invalid or empty
+    /// range.
+    static std::size_t countBuckets(QDateTime start, QDateTime end,
+                                    ChartScale scale);
+
     const QDateTime &start() const { return buckets_.front().start; }
     const QDateTime &end() const { return buckets_.back().end; }
     ChartScale scale() const { return scale_; }

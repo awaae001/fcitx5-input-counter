@@ -91,17 +91,14 @@ msgstr "1 个月"
 msgid "Apply"
 msgstr "应用"
 
-msgid "Choose valid start and end times."
-msgstr "请选择有效的开始时间和结束时间。"
+msgid "Bars"
+msgstr "柱形数"
 
-msgid "Start time must be earlier than end time."
-msgstr "开始时间必须早于结束时间。"
+msgid "%1 / %2 (over limit)"
+msgstr "%1 / %2（超出上限）"
 
-msgid ""
-"The selected range contains more than %1 bars. Choose a coarser time scale "
-"or a shorter range."
-msgstr ""
-"所选范围会生成超过 %1 个柱形，请选择更大的时间刻度或缩短时间范围。"
+msgid "Invalid range"
+msgstr "范围无效"
 
 msgid "Refresh"
 msgstr "刷新"
