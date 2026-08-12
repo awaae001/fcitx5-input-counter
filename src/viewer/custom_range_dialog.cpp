@@ -82,7 +82,7 @@ std::optional<ChartRange> chooseCustomRange(QWidget &parent,
       dialog.style()->standardIcon(QStyle::SP_MessageBoxInformation));
   limitInfo->setAutoRaise(true);
   limitInfo->setFocusPolicy(Qt::NoFocus);
-  const auto limitExplanation = QString(IC_("At most %1 bars can be queried at once. This limit keeps database queries, D-Bus transfers, and chart rendering responsive.")).arg(ChartRange::kMaximumBuckets);
+  const auto limitExplanation = QString(IC_("At most %1 bars can be queried at once. This limit is intended to prevent lag caused by excessive data during database queries, D-Bus transfers, and chart rendering.")).arg(ChartRange::kMaximumBuckets);
   limitInfo->setToolTip(limitExplanation);
   limitInfo->setAccessibleName(IC_("Why is there a limit?"));
   bucketLayout->addWidget(limitInfo);

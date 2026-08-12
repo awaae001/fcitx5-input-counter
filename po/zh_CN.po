@@ -100,8 +100,8 @@ msgstr "%1 / %2（超出上限）"
 msgid "Invalid range"
 msgstr "范围无效"
 
-msgid "At most %1 bars can be queried at once. This limit keeps database queries, D-Bus transfers, and chart rendering responsive."
-msgstr "单次最多查询 %1 个柱形。此举措意在于避免因数据库查询、D-Bus 传输和图表渲染的数据量过大造成的卡顿，确保界面流畅。"
+msgid "At most %1 bars can be queried at once. This limit is intended to prevent lag caused by excessive data during database queries, D-Bus transfers, and chart rendering."
+msgstr "单次最多查询 %1 个柱形。此举措意在避免因数据库查询、D-Bus 传输和图表渲染的数据量过大造成的卡顿"
 
 msgid "Why is there a limit?"
 msgstr "为什么会有上限？"
