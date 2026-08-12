@@ -13,10 +13,13 @@
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QFormLayout>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
 #include <QString>
+#include <QStyle>
 #include <QTime>
+#include <QToolButton>
 #include <QVBoxLayout>
 
 #include "i18n.h"
@@ -66,8 +69,26 @@ std::optional<ChartRange> chooseCustomRange(QWidget &parent,
   form->addRow(IC_("Start time"), start);
   form->addRow(IC_("End time"), end);
   form->addRow(IC_("Time scale"), scale);
-  auto *bucketCount = new QLabel(&dialog);
-  form->addRow(IC_("Bars"), bucketCount);
+
+  auto *bucketRow = new QWidget(&dialog);
+  auto *bucketLayout = new QHBoxLayout(bucketRow);
+  bucketLayout->setContentsMargins(0, 0, 0, 0);
+  bucketLayout->setSpacing(4);
+  auto *bucketCount = new QLabel(bucketRow);
+  bucketLayout->addWidget(bucketCount);
+
+  auto *limitInfo = new QToolButton(bucketRow);
+  limitInfo->setIcon(
+      dialog.style()->standardIcon(QStyle::SP_MessageBoxInformation));
+  limitInfo->setAutoRaise(true);
+  limitInfo->setFocusPolicy(Qt::NoFocus);
+  const auto limitExplanation = QString(IC_("At most %1 bars can be queried at once. This limit keeps database queries, D-Bus transfers, and chart rendering responsive.")).arg(ChartRange::kMaximumBuckets);
+  limitInfo->setToolTip(limitExplanation);
+  limitInfo->setAccessibleName(IC_("Why is there a limit?"));
+  bucketLayout->addWidget(limitInfo);
+  bucketLayout->addStretch();
+
+  form->addRow(IC_("Bars"), bucketRow);
   layout->addLayout(form);
 
   auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok |
