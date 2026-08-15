@@ -176,7 +176,7 @@ namespace inputcounter
     auto *refreshShortcut = new QShortcut(refreshKeys, &window);
 
     auto *clearButton = new QPushButton(
-        window.style()->standardIcon(QStyle::SP_TrashIcon), IC_("Clear all…"),
+        window.style()->standardIcon(QStyle::SP_TrashIcon), IC_("Clear all"),
         central);
 
     auto *unavailableLabel = new QLabel(IC_("Data unavailable"), central);

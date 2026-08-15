@@ -109,8 +109,8 @@ msgstr "为什么会有上限？"
 msgid "Refresh"
 msgstr "刷新"
 
-msgid "Clear all…"
-msgstr "清零…"
+msgid "Clear all"
+msgstr "清零"
 
 msgid "Clear all statistics"
 msgstr "清空统计"
