@@ -11,7 +11,7 @@
 #include <QLocale>
 #include <QTime>
 
-#include "../hourly_count.h"
+#include "../statistics_types.h"
 #include "chart_range.h"
 
 namespace inputcounter {

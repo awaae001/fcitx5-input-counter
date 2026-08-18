@@ -26,7 +26,6 @@ class AddonManager;
 namespace inputcounter {
 
 class DatabaseManager;
-class HourlyCountBuffer;
 class InputCounterDBus;
 class StatisticsBackend;
 
@@ -56,7 +55,6 @@ private:
   InputCounterSettings settings_;
   TextCounter textCounter_;
   std::unique_ptr<DatabaseManager> database_;
-  std::unique_ptr<HourlyCountBuffer> hourlyCounts_;
   std::unique_ptr<StatisticsBackend> statistics_;
   QuickCounter quickCounter_;
   fcitx::SimpleAction action_;

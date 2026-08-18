@@ -11,12 +11,9 @@
 #include <vector>
 
 #include "database_manager.h"
-#include "hourly_count_buffer.h"
-
 namespace {
 
 using inputcounter::DatabaseManager;
-using inputcounter::HourlyCountBuffer;
 using inputcounter::StatisticsBackend;
 using inputcounter::TimeRange;
 
@@ -56,9 +53,8 @@ private:
 void includes_pending_counts_in_summary() {
   TemporaryDatabase databasePath;
   DatabaseManager database(databasePath.path());
-  HourlyCountBuffer pending(database);
-  StatisticsBackend backend(database, pending);
-  pending.add(7200, 7);
+  StatisticsBackend backend(database);
+  database.recordChars(7200, 7);
 
   const auto summary = backend.summary(0, 3600, 7200);
 
@@ -73,11 +69,10 @@ void includes_pending_counts_in_summary() {
 void sums_ordered_buckets() {
   TemporaryDatabase databasePath;
   DatabaseManager database(databasePath.path());
-  HourlyCountBuffer pending(database);
-  StatisticsBackend backend(database, pending);
-  pending.add(0, 2);
-  pending.add(3600, 3);
-  pending.add(7200, 5);
+  StatisticsBackend backend(database);
+  database.recordChars(0, 2);
+  database.recordChars(3600, 3);
+  database.recordChars(7200, 5);
 
   const auto counts =
       backend.bucketCounts(std::vector<TimeRange>{{0, 7200}, {7200, 10800}});
@@ -89,11 +84,10 @@ void sums_ordered_buckets() {
 void sums_independent_summary_windows() {
   TemporaryDatabase databasePath;
   DatabaseManager database(databasePath.path());
-  HourlyCountBuffer pending(database);
-  StatisticsBackend backend(database, pending);
-  pending.add(0, 2);
-  pending.add(3600, 3);
-  pending.add(7200, 5);
+  StatisticsBackend backend(database);
+  database.recordChars(0, 2);
+  database.recordChars(3600, 3);
+  database.recordChars(7200, 5);
 
   const auto summary = backend.summary(7200, 3600, 0);
 
@@ -107,8 +101,7 @@ void sums_independent_summary_windows() {
 void reports_empty_summary() {
   TemporaryDatabase databasePath;
   DatabaseManager database(databasePath.path());
-  HourlyCountBuffer pending(database);
-  StatisticsBackend backend(database, pending);
+  StatisticsBackend backend(database);
 
   const auto summary = backend.summary(0, 0, 0);
 
@@ -119,8 +112,7 @@ void reports_empty_summary() {
 void rejects_overlapping_buckets() {
   TemporaryDatabase databasePath;
   DatabaseManager database(databasePath.path());
-  HourlyCountBuffer pending(database);
-  StatisticsBackend backend(database, pending);
+  StatisticsBackend backend(database);
 
   bool rejected = false;
   try {
@@ -135,14 +127,13 @@ void rejects_overlapping_buckets() {
 void discards_pending_counts_on_reset() {
   TemporaryDatabase databasePath;
   DatabaseManager database(databasePath.path());
-  HourlyCountBuffer pending(database);
-  StatisticsBackend backend(database, pending);
-  pending.add(0, 2);
-  pending.flush();
-  pending.add(3600, 3);
+  StatisticsBackend backend(database);
+  database.recordChars(0, 2);
+  database.flush();
+  database.recordChars(3600, 3);
 
   backend.reset();
-  pending.flush();
+  database.flush();
 
   require(database.summary(0, 0, 0).total == 0,
           "pending counts were restored after reset");

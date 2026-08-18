@@ -29,7 +29,6 @@ configure_file(src/embedded_sql.h.in embedded_sql.h @ONLY)
 
 add_library(inputcounter MODULE
     src/database_manager.cpp
-    src/hourly_count_buffer.cpp
     src/input_counter.cpp
     src/input_counter_dbus.cpp
     src/input_counter_settings.cpp
@@ -110,21 +109,19 @@ if(BUILD_TESTING)
     )
     add_test(NAME text-counter-test COMMAND text-counter-test)
 
-    add_executable(hourly-count-buffer-test
+    add_executable(database-manager-test
         src/database_manager.cpp
-        src/hourly_count_buffer.cpp
-        tests/hourly_count_buffer_test.cpp
+        tests/database_manager_test.cpp
     )
-    target_include_directories(hourly-count-buffer-test PRIVATE
+    target_include_directories(database-manager-test PRIVATE
         "${CMAKE_CURRENT_BINARY_DIR}"
         src
     )
-    target_link_libraries(hourly-count-buffer-test PRIVATE SQLite3::SQLite3)
-    add_test(NAME hourly-count-buffer-test COMMAND hourly-count-buffer-test)
+    target_link_libraries(database-manager-test PRIVATE SQLite3::SQLite3)
+    add_test(NAME database-manager-test COMMAND database-manager-test)
 
     add_executable(statistics-backend-test
         src/database_manager.cpp
-        src/hourly_count_buffer.cpp
         src/statistics_backend.cpp
         tests/statistics_backend_test.cpp
     )

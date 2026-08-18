@@ -29,7 +29,6 @@
 #include <dbus_public.h>
 
 #include "database_manager.h"
-#include "hourly_count_buffer.h"
 #include "input_counter_dbus.h"
 #include "statistics_backend.h"
 
@@ -54,11 +53,8 @@ InputCounterAddon::InputCounterAddon(fcitx::AddonManager *manager)
     : instance_(requireInstance(manager)), quickCounter_(*instance_) {
   try {
     auto database = std::make_unique<DatabaseManager>();
-    auto hourlyCounts = std::make_unique<HourlyCountBuffer>(*database);
-    auto statistics =
-        std::make_unique<StatisticsBackend>(*database, *hourlyCounts);
+    auto statistics = std::make_unique<StatisticsBackend>(*database);
     database_ = std::move(database);
-    hourlyCounts_ = std::move(hourlyCounts);
     statistics_ = std::move(statistics);
   } catch (const std::exception &error) {
     FCITX_ERROR() << "inputcounter could not open the statistics database: "
@@ -170,19 +166,20 @@ void InputCounterAddon::count(std::string_view text,
   }
 
   const auto chars = static_cast<std::uint64_t>(textCounter_.count(text));
-  if (hourlyCounts_ != nullptr) {
-    hourlyCounts_->add(static_cast<std::int64_t>(std::time(nullptr)), chars);
+  if (database_ != nullptr) {
+    database_->recordChars(static_cast<std::int64_t>(std::time(nullptr)),
+                           chars);
   }
   quickCounter_.record(chars, inputContext);
 }
 
 void InputCounterAddon::flush() {
-  if (hourlyCounts_ == nullptr) {
+  if (database_ == nullptr) {
     return;
   }
 
   try {
-    hourlyCounts_->flush();
+    database_->flush();
   } catch (const std::exception &error) {
     FCITX_WARN() << "inputcounter failed to persist statistics: "
                  << error.what();

@@ -3,13 +3,13 @@
 #ifndef FCITX5_INPUT_COUNTER_DATABASE_MANAGER_H
 #define FCITX5_INPUT_COUNTER_DATABASE_MANAGER_H
 
-//! Owns the process-local SQLite connection used for input statistics.
+//! Owns buffered statistics and their process-local SQLite connection.
 
 #include <cstdint>
+#include <map>
 #include <string>
 #include <vector>
 
-#include "hourly_count.h"
 #include "statistics_types.h"
 
 struct sqlite3;
@@ -17,7 +17,7 @@ struct sqlite3;
 namespace inputcounter
 {
 
-  /// Manages the process-local connection to the statistics database.
+  /// Manages pending counts and the process-local statistics database.
   ///
   /// Create one manager at each process composition root and inject references
   /// into database consumers. All operations throw std::runtime_error on
@@ -38,8 +38,14 @@ namespace inputcounter
     DatabaseManager(const DatabaseManager &) = delete;
     DatabaseManager &operator=(const DatabaseManager &) = delete;
 
-    /// Adds chars to the row for the given hour-start timestamp.
-    void addChars(std::int64_t hourStart, std::uint64_t chars);
+    /// Adds chars to the pending bucket containing unixSeconds.
+    void recordChars(std::int64_t unixSeconds, std::uint64_t chars);
+
+    /// Persists all pending hourly buckets.
+    ///
+    /// Successfully persisted buckets are removed immediately. If persistence
+    /// throws, the failed bucket and all later buckets remain pending.
+    void flush();
 
     /// Returns all overview aggregates from one consistent database snapshot.
     StatisticsSummary summary(std::int64_t todayStart,
@@ -53,7 +59,10 @@ namespace inputcounter
     void reset();
 
   private:
+    void persistChars(std::int64_t hourStart, std::uint64_t chars);
+
     sqlite3 *db_ = nullptr;
+    std::map<std::int64_t, std::uint64_t> pending_;
   };
 
 } // namespace inputcounter

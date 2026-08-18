@@ -1,21 +1,18 @@
 // SPDX-License-Identifier: MIT
 
-//! Exercises buffered hourly persistence.
+//! Exercises buffered database management.
 
-#include "hourly_count_buffer.h"
+#include "database_manager.h"
 
 #include <cstdlib>
 #include <filesystem>
 #include <stdexcept>
 #include <string>
 
-#include "database_manager.h"
-
 namespace {
 
 using inputcounter::DatabaseManager;
 using inputcounter::hourStartOf;
-using inputcounter::HourlyCountBuffer;
 
 void require(bool condition, const char *message) {
   if (!condition) {
@@ -53,12 +50,11 @@ private:
 void aggregates_counts_by_hour() {
   TemporaryDatabase database;
   DatabaseManager manager(database.path());
-  HourlyCountBuffer buffer(manager);
 
-  buffer.add(3599, 2);
-  buffer.add(3601, 3);
-  buffer.add(3610, 4);
-  buffer.flush();
+  manager.recordChars(3599, 2);
+  manager.recordChars(3601, 3);
+  manager.recordChars(3610, 4);
+  manager.flush();
 
   const auto rows = manager.hourlyBetween(0, 2 * 60 * 60);
   require(rows.size() == 2, "counts were not split into hourly buckets");
@@ -71,11 +67,10 @@ void aggregates_counts_by_hour() {
 void flushes_each_count_once() {
   TemporaryDatabase database;
   DatabaseManager manager(database.path());
-  HourlyCountBuffer buffer(manager);
 
-  buffer.add(3600, 5);
-  buffer.flush();
-  buffer.flush();
+  manager.recordChars(3600, 5);
+  manager.flush();
+  manager.flush();
 
   require(manager.summary(0, 0, 0).total == 5,
           "a persisted count was flushed twice");
@@ -84,10 +79,9 @@ void flushes_each_count_once() {
 void ignores_zero_counts() {
   TemporaryDatabase database;
   DatabaseManager manager(database.path());
-  HourlyCountBuffer buffer(manager);
 
-  buffer.add(3600, 0);
-  buffer.flush();
+  manager.recordChars(3600, 0);
+  manager.flush();
 
   require(manager.hourlyBetween(0, 2 * 60 * 60).empty(),
           "zero count created an hourly bucket");
