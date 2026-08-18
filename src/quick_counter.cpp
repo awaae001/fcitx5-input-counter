@@ -22,15 +22,20 @@ QuickCounter::QuickCounter(fcitx::Instance &instance) : instance_(instance) {
   toggleRecordingAction_.connect<fcitx::SimpleAction::Activated>(
       [this](fcitx::InputContext *) {
         recording_ = !recording_;
-        updateActions();
+        updateRecordingText();
+        updateAll(toggleRecordingAction_);
       });
 
   resetAction_.setShortText(_("Reset"));
   resetAction_.connect<fcitx::SimpleAction::Activated>(
       [this](fcitx::InputContext *) {
         chars_ = 0;
-        updateActions();
+        updateCountText();
+        updateAll(countAction_);
       });
+
+  updateCountText();
+  updateRecordingText();
 
   auto &uiManager = instance_.userInterfaceManager();
   if (!separatorAction_.registerAction("inputcounter-session-separator",
@@ -42,8 +47,6 @@ QuickCounter::QuickCounter(fcitx::Instance &instance) : instance_(instance) {
     throw std::runtime_error(
         "inputcounter could not register its menu actions");
   }
-
-  updateActions();
 }
 
 void QuickCounter::attach(fcitx::InputContext &inputContext) {
@@ -67,7 +70,7 @@ void QuickCounter::setVisible(bool visible) {
   visible_ = visible;
   if (!visible_) {
     recording_ = false;
-    updateActions();
+    updateRecordingText();
   }
 
   instance_.inputContextManager().foreach (
@@ -82,28 +85,35 @@ void QuickCounter::setVisible(bool visible) {
       });
 }
 
-void QuickCounter::record(std::uint64_t chars) {
+void QuickCounter::record(std::uint64_t chars,
+                          fcitx::InputContext *inputContext) {
   if (!recording_) {
     return;
   }
 
   chars_ += chars;
-  updateActions();
+  updateCountText();
+  if (inputContext != nullptr) {
+    countAction_.update(inputContext);
+  }
 }
 
-void QuickCounter::updateActions() {
+void QuickCounter::updateCountText() {
   std::string label = _("Count");
   label += ": ";
   label += std::to_string(chars_);
   countAction_.setShortText(label);
+}
 
+void QuickCounter::updateRecordingText() {
   toggleRecordingAction_.setShortText(recording_ ? _("Pause recording")
                                                  : _("Start recording"));
+}
 
+void QuickCounter::updateAll(fcitx::SimpleAction &action) {
   instance_.inputContextManager().foreach (
-      [this](fcitx::InputContext *inputContext) {
-        countAction_.update(inputContext);
-        toggleRecordingAction_.update(inputContext);
+      [&action](fcitx::InputContext *inputContext) {
+        action.update(inputContext);
         return true;
       });
 }

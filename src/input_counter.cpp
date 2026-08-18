@@ -110,13 +110,17 @@ InputCounterAddon::InputCounterAddon(fcitx::AddonManager *manager)
   commitWatcher_ = instance_->watchEvent(
       fcitx::EventType::InputContextCommitString,
       fcitx::EventWatcherPhase::Default, [this](fcitx::Event &event) {
-        count(static_cast<fcitx::CommitStringEvent &>(event).text());
+        const auto &commitEvent =
+            static_cast<fcitx::CommitStringEvent &>(event);
+        count(commitEvent.text(), commitEvent.inputContext());
       });
 
   commitWithCursorWatcher_ = instance_->watchEvent(
       fcitx::EventType::InputContextCommitStringWithCursor,
       fcitx::EventWatcherPhase::Default, [this](fcitx::Event &event) {
-        count(static_cast<fcitx::CommitStringWithCursorEvent &>(event).text());
+        const auto &commitEvent =
+            static_cast<fcitx::CommitStringWithCursorEvent &>(event);
+        count(commitEvent.text(), commitEvent.inputContext());
       });
 
   keyWatcher_ = instance_->watchEvent(
@@ -128,7 +132,7 @@ InputCounterAddon::InputCounterAddon(fcitx::AddonManager *manager)
           return;
         }
         if (const auto text = TextCounter::textForKey(key); text.has_value()) {
-          count(*text);
+          count(*text, keyEvent.inputContext());
         }
       });
 
@@ -153,7 +157,8 @@ void InputCounterAddon::setConfig(const fcitx::RawConfig &config) {
   quickCounter_.setVisible(settings_.quickCounterEnabled());
 }
 
-void InputCounterAddon::count(std::string_view text) {
+void InputCounterAddon::count(std::string_view text,
+                              fcitx::InputContext *inputContext) {
   const auto codePoints =
       text.empty() ? 0 : fcitx_utf8_strnlen_validated(text.data(), text.size());
   if (codePoints == fcitx::utf8::INVALID_LENGTH) {
@@ -168,7 +173,7 @@ void InputCounterAddon::count(std::string_view text) {
   if (hourlyCounts_ != nullptr) {
     hourlyCounts_->add(static_cast<std::int64_t>(std::time(nullptr)), chars);
   }
-  quickCounter_.record(chars);
+  quickCounter_.record(chars, inputContext);
 }
 
 void InputCounterAddon::flush() {

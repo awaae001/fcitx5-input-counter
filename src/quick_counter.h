@@ -33,10 +33,14 @@ public:
   void setVisible(bool visible);
 
   /// Adds chars to the session count while recording is active.
-  void record(std::uint64_t chars);
+  ///
+  /// Only inputContext is notified because recording is a high-frequency path.
+  void record(std::uint64_t chars, fcitx::InputContext *inputContext);
 
 private:
-  void updateActions();
+  void updateCountText();
+  void updateRecordingText();
+  void updateAll(fcitx::SimpleAction &action);
 
   fcitx::Instance &instance_;
   std::uint64_t chars_ = 0;

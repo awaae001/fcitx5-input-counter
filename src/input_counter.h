@@ -48,7 +48,7 @@ public:
   void setConfig(const fcitx::RawConfig &config) override;
 
 private:
-  void count(std::string_view text);
+  void count(std::string_view text, fcitx::InputContext *inputContext);
   void flush();
   void addStatusActions(fcitx::InputContext *inputContext);
 
