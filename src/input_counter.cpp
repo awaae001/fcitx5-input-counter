@@ -78,7 +78,7 @@ InputCounterAddon::InputCounterAddon(fcitx::AddonManager *manager)
 
   action_.setIcon("view-statistics");
   action_.setShortText(_("Input Counter"));
-  action_.setLongText(_("Committed characters are counted by hour and stored "
+  action_.setLongText(_("Committed graphemes are counted by hour and stored "
                         "locally; no text is retained."));
   action_.connect<fcitx::SimpleAction::Activated>(
       [this](fcitx::InputContext *) {
@@ -124,18 +124,11 @@ InputCounterAddon::InputCounterAddon(fcitx::AddonManager *manager)
       fcitx::EventWatcherPhase::PostInputMethod, [this](fcitx::Event &event) {
         const auto &keyEvent = static_cast<fcitx::KeyEvent &>(event);
         const auto key = keyEvent.key();
-        constexpr fcitx::KeyStates shortcutStates{
-            fcitx::KeyState::Ctrl,  fcitx::KeyState::Alt,
-            fcitx::KeyState::Super, fcitx::KeyState::Super2,
-            fcitx::KeyState::Hyper, fcitx::KeyState::Hyper2,
-            fcitx::KeyState::Meta};
-        if (keyEvent.isRelease() || keyEvent.filtered() || key.isModifier() ||
-            key.states().testAny(shortcutStates)) {
+        if (keyEvent.isRelease() || keyEvent.filtered()) {
           return;
         }
-        const auto text = fcitx::Key::keySymToUTF8(key.sym());
-        if (!text.empty()) {
-          count(text);
+        if (const auto text = TextCounter::textForKey(key); text.has_value()) {
+          count(*text);
         }
       });
 
@@ -161,17 +154,17 @@ void InputCounterAddon::setConfig(const fcitx::RawConfig &config) {
 }
 
 void InputCounterAddon::count(std::string_view text) {
-  const auto added =
+  const auto codePoints =
       text.empty() ? 0 : fcitx_utf8_strnlen_validated(text.data(), text.size());
-  if (added == fcitx::utf8::INVALID_LENGTH) {
+  if (codePoints == fcitx::utf8::INVALID_LENGTH) {
     FCITX_WARN() << "inputcounter ignored invalid text";
     return;
   }
-  if (added == 0) {
+  if (codePoints == 0) {
     return;
   }
 
-  const auto chars = static_cast<std::uint64_t>(added);
+  const auto chars = static_cast<std::uint64_t>(textCounter_.count(text));
   if (hourlyCounts_ != nullptr) {
     hourlyCounts_->add(static_cast<std::int64_t>(std::time(nullptr)), chars);
   }

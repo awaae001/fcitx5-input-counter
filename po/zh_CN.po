@@ -26,7 +26,7 @@ msgstr "归零"
 msgid ""
 "Committed characters are counted by hour and stored locally; no text is "
 "retained."
-msgstr "按小时统计上屏字符并本地保存，不保留输入内容。"
+msgstr "按小时统计已上屏字数并本地保存，不保留输入内容。"
 
 msgid "Could not open the statistics database: %1"
 msgstr "无法打开统计数据库：%1"

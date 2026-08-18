@@ -12,6 +12,7 @@ set(CMAKE_AUTOMOC ON)
 find_package(Fcitx5Core 5.1.2 REQUIRED)
 find_package(Fcitx5ModuleDBus REQUIRED)
 find_package(Gettext REQUIRED)
+find_package(ICU REQUIRED COMPONENTS i18n uc)
 find_package(SQLite3 REQUIRED)
 find_package(Qt6 REQUIRED COMPONENTS DBus Widgets)
 
@@ -35,11 +36,14 @@ add_library(inputcounter MODULE
     src/main.cpp
     src/quick_counter.cpp
     src/statistics_backend.cpp
+    src/text_counter.cpp
 )
 target_include_directories(inputcounter PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(inputcounter PRIVATE
     Fcitx5::Core
     Fcitx5::Module::DBus
+    ICU::i18n
+    ICU::uc
     SQLite3::SQLite3
 )
 target_compile_definitions(inputcounter PRIVATE
@@ -94,6 +98,18 @@ install(
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(text-counter-test
+        src/text_counter.cpp
+        tests/text_counter_test.cpp
+    )
+    target_include_directories(text-counter-test PRIVATE src)
+    target_link_libraries(text-counter-test PRIVATE
+        Fcitx5::Utils
+        ICU::i18n
+        ICU::uc
+    )
+    add_test(NAME text-counter-test COMMAND text-counter-test)
+
     add_executable(hourly-count-buffer-test
         src/database_manager.cpp
         src/hourly_count_buffer.cpp

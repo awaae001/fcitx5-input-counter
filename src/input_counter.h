@@ -17,6 +17,7 @@
 
 #include "input_counter_settings.h"
 #include "quick_counter.h"
+#include "text_counter.h"
 
 namespace fcitx {
 class AddonManager;
@@ -53,6 +54,7 @@ private:
 
   fcitx::Instance *instance_;
   InputCounterSettings settings_;
+  TextCounter textCounter_;
   std::unique_ptr<DatabaseManager> database_;
   std::unique_ptr<HourlyCountBuffer> hourlyCounts_;
   std::unique_ptr<StatisticsBackend> statistics_;
