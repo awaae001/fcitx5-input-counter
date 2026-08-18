@@ -19,8 +19,8 @@ class StatisticsBackend;
 class InputCounterDBus final
     : public fcitx::dbus::ObjectVTable<InputCounterDBus> {
 public:
-  /// Borrows backend, which may be null when database initialization failed.
-  explicit InputCounterDBus(StatisticsBackend *backend) noexcept;
+  /// Borrows backend for this object's lifetime.
+  explicit InputCounterDBus(StatisticsBackend &backend) noexcept;
 
 private:
   using Bucket = fcitx::dbus::DBusStruct<std::int64_t, std::int64_t>;
@@ -33,13 +33,11 @@ private:
   getBucketCounts(const std::vector<Bucket> &buckets);
   void reset();
 
-  StatisticsBackend &requireBackend() const;
-
   FCITX_OBJECT_VTABLE_METHOD(getSummary, "GetSummary", "xxx", "ttttbx");
   FCITX_OBJECT_VTABLE_METHOD(getBucketCounts, "GetBucketCounts", "a(xx)", "at");
   FCITX_OBJECT_VTABLE_METHOD(reset, "Reset", "", "");
 
-  StatisticsBackend *backend_;
+  StatisticsBackend &backend_;
 };
 
 } // namespace inputcounter

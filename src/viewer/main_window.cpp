@@ -27,69 +27,78 @@
 #include "statistics_client.h"
 #include "statistics_snapshot.h"
 
-namespace inputcounter {
+namespace inputcounter
+{
 
-namespace {
+  namespace
+  {
 
-constexpr int kRefreshIntervalMilliseconds = 60 * 1000;
+    constexpr int kRefreshIntervalMilliseconds = 60 * 1000;
 
-QString connectionText(const char *color, const char *text) {
-  return QStringLiteral("<span style=\"color:%1\">●</span> %2")
-      .arg(QString::fromLatin1(color), QString(text).toHtmlEscaped());
-}
+    QString connectionText(const char *color, const char *text)
+    {
+      return QStringLiteral("<span style=\"color:%1\">●</span> %2")
+          .arg(QString::fromLatin1(color), QString(text).toHtmlEscaped());
+    }
 
-struct SelectedChart final {
-  BarChartWidget *widget;
-  ChartQuery query;
-};
+    struct SelectedChart final
+    {
+      BarChartWidget *widget;
+      ChartQuery query;
+    };
 
-} // namespace
+  } // namespace
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent), client_(std::make_unique<StatisticsClient>()) {
-  setWindowTitle(IC_("Input Counter"));
+  MainWindow::MainWindow(QWidget *parent)
+      : QMainWindow(parent), client_(std::make_unique<StatisticsClient>())
+  {
+    setWindowTitle(IC_("Input Counter"));
 
-  ui_ = std::make_unique<MainWindowUi>(buildUi(*this));
-  clearDisplay();
-  setUnavailable();
+    ui_ = std::make_unique<MainWindowUi>(buildUi(*this));
+    clearDisplay();
+    setUnavailable();
 
-  connect(&ui_->refreshButton, &QPushButton::clicked, this,
-          &MainWindow::refresh);
-  connect(&ui_->refreshShortcut, &QShortcut::activated, this,
-          &MainWindow::refresh);
-  connect(&ui_->clearButton, &QPushButton::clicked, this,
-          &MainWindow::confirmReset);
-  connect(&ui_->customButton, &QPushButton::clicked, this,
-          &MainWindow::editCustomRange);
-  connect(&ui_->chartTabs, &QTabBar::currentChanged, this,
-          [this](int) { refresh(); });
+    connect(&ui_->refreshButton, &QPushButton::clicked, this,
+            &MainWindow::refresh);
+    connect(&ui_->refreshShortcut, &QShortcut::activated, this,
+            &MainWindow::refresh);
+    connect(&ui_->clearButton, &QPushButton::clicked, this,
+            &MainWindow::confirmReset);
+    connect(&ui_->customButton, &QPushButton::clicked, this,
+            &MainWindow::editCustomRange);
+    connect(&ui_->chartTabs, &QTabBar::currentChanged, this,
+            [this](int)
+            { refresh(); });
 
-  auto *timer = new QTimer(this);
-  timer->setInterval(kRefreshIntervalMilliseconds);
-  connect(timer, &QTimer::timeout, this, &MainWindow::refresh);
-  timer->start();
+    auto *timer = new QTimer(this);
+    timer->setInterval(kRefreshIntervalMilliseconds);
+    connect(timer, &QTimer::timeout, this, &MainWindow::refresh);
+    timer->start();
 
-  refresh();
-}
-
-MainWindow::~MainWindow() = default;
-
-void MainWindow::refresh() {
-  if (ui_ == nullptr) {
-    return;
-  }
-  if (operationPending_) {
-    refreshQueued_ = true;
-    return;
+    refresh();
   }
 
-  operationPending_ = true;
-  setBusy(true);
-  const auto now = QDateTime::currentSecsSinceEpoch();
-  client_->getSummary(summaryQuery(now), [this, now](SummaryResult result) {
+  MainWindow::~MainWindow() = default;
+
+  void MainWindow::refresh()
+  {
+    if (ui_ == nullptr)
+    {
+      return;
+    }
+    if (operationPending_)
+    {
+      refreshQueued_ = true;
+      return;
+    }
+
+    operationPending_ = true;
+    setBusy(true);
+    const auto now = QDateTime::currentSecsSinceEpoch();
+    client_->getSummary(summaryQuery(now), [this, now](SummaryResult result)
+                        {
     if (const auto *error = std::get_if<QString>(&result)) {
-      Q_UNUSED(error);
-      setUnavailable();
+      setUnavailable(*error);
       finishOperation();
       return;
     }
@@ -122,8 +131,7 @@ void MainWindow::refresh() {
         selectedRanges, [this, summary, selected = std::move(selected)](
                             BucketResult bucketResult) mutable {
           if (const auto *error = std::get_if<QString>(&bucketResult)) {
-            Q_UNUSED(error);
-            setUnavailable();
+            setUnavailable(*error);
             finishOperation();
             return;
           }
@@ -148,45 +156,51 @@ void MainWindow::refresh() {
               connectionText("#2e7d32", IC_("Connected")));
           hasSnapshot_ = true;
           finishOperation();
-        });
-  });
-}
-
-void MainWindow::editCustomRange() {
-  if (ui_ == nullptr) {
-    return;
+        }); });
   }
 
-  const bool showingCustom =
-      ui_->chartStack.currentWidget() == &ui_->customChart;
-  auto selected = chooseCustomRange(*this, customRange_.get());
-  if (!selected.has_value()) {
-    ui_->customButton.setChecked(showingCustom);
-    return;
+  void MainWindow::editCustomRange()
+  {
+    if (ui_ == nullptr)
+    {
+      return;
+    }
+
+    const bool showingCustom =
+        ui_->chartStack.currentWidget() == &ui_->customChart;
+    auto selected = chooseCustomRange(*this, customRange_.get());
+    if (!selected.has_value())
+    {
+      ui_->customButton.setChecked(showingCustom);
+      return;
+    }
+
+    customRange_ = std::make_unique<ChartRange>(std::move(selected).value());
+    ui_->chartTabs.setCurrentIndex(-1);
+    ui_->chartStack.setCurrentWidget(&ui_->customChart);
+    ui_->customButton.setChecked(true);
+    refresh();
   }
 
-  customRange_ = std::make_unique<ChartRange>(std::move(selected).value());
-  ui_->chartTabs.setCurrentIndex(-1);
-  ui_->chartStack.setCurrentWidget(&ui_->customChart);
-  ui_->customButton.setChecked(true);
-  refresh();
-}
+  void MainWindow::confirmReset()
+  {
+    if (ui_ == nullptr || operationPending_ || !available_)
+    {
+      return;
+    }
+    const auto choice = QMessageBox::question(
+        this, IC_("Clear all statistics"),
+        IC_("This permanently deletes all recorded input statistics. "
+            "Continue?"));
+    if (choice != QMessageBox::Yes)
+    {
+      return;
+    }
 
-void MainWindow::confirmReset() {
-  if (ui_ == nullptr || operationPending_ || !available_) {
-    return;
-  }
-  const auto choice = QMessageBox::question(
-      this, IC_("Clear all statistics"),
-      IC_("This permanently deletes all recorded input statistics. "
-          "Continue?"));
-  if (choice != QMessageBox::Yes) {
-    return;
-  }
-
-  operationPending_ = true;
-  setBusy(true);
-  client_->reset([this](ResetResult result) {
+    operationPending_ = true;
+    setBusy(true);
+    client_->reset([this](ResetResult result)
+                   {
     if (const auto *error = std::get_if<QString>(&result)) {
       QMessageBox::warning(
           this, IC_("Clear all statistics"),
@@ -198,45 +212,55 @@ void MainWindow::confirmReset() {
 
     clearDisplay();
     finishOperation();
-    refresh();
-  });
-}
-
-void MainWindow::setBusy(bool busy) {
-  ui_->refreshButton.setEnabled(!busy);
-  ui_->clearButton.setEnabled(!busy && available_);
-}
-
-void MainWindow::setUnavailable() {
-  available_ = false;
-  ui_->unavailableLabel.show();
-  ui_->connectionLabel.setText(
-      connectionText("#c62828", IC_("Data unavailable")));
-  if (!hasSnapshot_) {
-    clearDisplay();
+    refresh(); });
   }
-}
 
-void MainWindow::finishOperation() {
-  operationPending_ = false;
-  setBusy(false);
-  if (refreshQueued_) {
-    refreshQueued_ = false;
-    QTimer::singleShot(0, this, &MainWindow::refresh);
+  void MainWindow::setBusy(bool busy)
+  {
+    ui_->refreshButton.setEnabled(!busy);
+    ui_->clearButton.setEnabled(!busy && available_);
   }
-}
 
-void MainWindow::clearDisplay() {
-  hasSnapshot_ = false;
-  ui_->totalValue.setText(QStringLiteral("—"));
-  ui_->todayValue.setText(QStringLiteral("—"));
-  ui_->last24HoursValue.setText(QStringLiteral("—"));
-  ui_->last7DaysValue.setText(QStringLiteral("—"));
-  for (auto *chart :
-       {&ui_->hoursChart, &ui_->weekChart, &ui_->monthChart,
-        &ui_->lastYearChart, &ui_->allTimeChart, &ui_->customChart}) {
-    chart->setData({});
+  void MainWindow::setUnavailable(const QString &error)
+  {
+    available_ = false;
+    ui_->unavailableLabel.setText(
+        error.isEmpty()
+            ? QString(IC_("Data unavailable"))
+            : QString(IC_("Failed to read statistics: %1")).arg(error));
+    ui_->unavailableLabel.show();
+    ui_->connectionLabel.setText(
+        connectionText("#c62828", IC_("Data unavailable")));
+    if (!hasSnapshot_)
+    {
+      clearDisplay();
+    }
   }
-}
+
+  void MainWindow::finishOperation()
+  {
+    operationPending_ = false;
+    setBusy(false);
+    if (refreshQueued_)
+    {
+      refreshQueued_ = false;
+      QTimer::singleShot(0, this, &MainWindow::refresh);
+    }
+  }
+
+  void MainWindow::clearDisplay()
+  {
+    hasSnapshot_ = false;
+    ui_->totalValue.setText(QStringLiteral("—"));
+    ui_->todayValue.setText(QStringLiteral("—"));
+    ui_->last24HoursValue.setText(QStringLiteral("—"));
+    ui_->last7DaysValue.setText(QStringLiteral("—"));
+    for (auto *chart :
+         {&ui_->hoursChart, &ui_->weekChart, &ui_->monthChart,
+          &ui_->lastYearChart, &ui_->allTimeChart, &ui_->customChart})
+    {
+      chart->setData({});
+    }
+  }
 
 } // namespace inputcounter

@@ -181,6 +181,7 @@ namespace inputcounter
 
     auto *unavailableLabel = new QLabel(IC_("Data unavailable"), central);
     unavailableLabel->setForegroundRole(QPalette::PlaceholderText);
+    unavailableLabel->setTextFormat(Qt::PlainText);
     unavailableLabel->setWordWrap(true);
 
     auto *connectionLabel = new QLabel(&window);

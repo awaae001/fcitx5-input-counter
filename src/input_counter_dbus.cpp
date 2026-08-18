@@ -40,7 +40,7 @@ namespace inputcounter
 
   } // namespace
 
-  InputCounterDBus::InputCounterDBus(StatisticsBackend *backend) noexcept
+  InputCounterDBus::InputCounterDBus(StatisticsBackend &backend) noexcept
       : backend_(backend) {}
 
   InputCounterDBus::Summary
@@ -51,7 +51,7 @@ namespace inputcounter
     return translateErrors([this, todayStart, last24HoursStart, last7DaysStart]
                            {
     const auto result =
-        requireBackend().summary(todayStart, last24HoursStart, last7DaysStart);
+        backend_.summary(todayStart, last24HoursStart, last7DaysStart);
     return Summary{result.total,     result.today,   result.last24Hours,
                    result.last7Days, result.hasData, result.firstHour}; });
   }
@@ -67,22 +67,13 @@ namespace inputcounter
       const auto &[start, end] = bucket.data();
       ranges.push_back({start, end});
     }
-    return requireBackend().bucketCounts(ranges); });
+    return backend_.bucketCounts(ranges); });
   }
 
   void InputCounterDBus::reset()
   {
     translateErrors([this]
-                    { requireBackend().reset(); });
-  }
-
-  StatisticsBackend &InputCounterDBus::requireBackend() const
-  {
-    if (backend_ == nullptr)
-    {
-      throw std::runtime_error("statistics database is unavailable");
-    }
-    return *backend_;
+                    { backend_.reset(); });
   }
 
 } // namespace inputcounter
