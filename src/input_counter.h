@@ -9,7 +9,6 @@
 #include <memory>
 #include <set>
 #include <string_view>
-#include <vector>
 
 #include <fcitx-utils/eventloopinterface.h>
 #include <fcitx-utils/handlertable.h>
@@ -17,7 +16,6 @@
 #include <fcitx/addoninstance.h>
 #include <fcitx/instance.h>
 
-#include "game_key_filter.h"
 #include "input_counter_settings.h"
 #include "text_counter.h"
 
@@ -54,16 +52,13 @@ private:
   void promptForSteamGame(const std::string &id, const std::string &name);
   void confirmSteamGame(const std::string &id);
   void ignoreSteamGame(const std::string &id);
-  bool filterGameKeys(fcitx::InputContext *inputContext) const;
-  void clearGameKeys();
+  bool excludeGameInput(fcitx::InputContext *inputContext) const;
   void flush();
   void addStatusActions(fcitx::InputContext *inputContext);
 
   fcitx::Instance *instance_;
   InputCounterSettings settings_;
   TextCounter textCounter_;
-  GameKeyFilter gameKeys_;
-  fcitx::InputContext *gameKeyContext_ = nullptr;
   bool steamGameRunning_ = false;
   std::set<std::string> detectedSteamGames_;
   std::set<std::string> gamePrograms_;
@@ -77,10 +72,6 @@ private:
   fcitx::SimpleAction action_;
   std::unique_ptr<fcitx::EventSourceTime> flushEvent_;
   std::unique_ptr<fcitx::EventSourceTime> gamePollEvent_;
-  std::vector<std::unique_ptr<fcitx::HandlerTableEntry<fcitx::EventHandler>>>
-      gameContextWatchers_;
-  std::unique_ptr<fcitx::HandlerTableEntry<fcitx::EventHandler>>
-      keyReleaseWatcher_;
   std::unique_ptr<fcitx::HandlerTableEntry<fcitx::EventHandler>>
       contextCreatedWatcher_;
   std::unique_ptr<fcitx::HandlerTableEntry<fcitx::EventHandler>> commitWatcher_;

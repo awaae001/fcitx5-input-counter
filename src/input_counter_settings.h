@@ -27,15 +27,15 @@ using TooltipOption =
 /// Fcitx settings plus the separate registry of detected Steam games.
 FCITX_CONFIGURATION(
     InputCounterSettings,
-    TooltipOption<bool> steamGameFilter{
+    TooltipOption<bool> steamGameExclusion{
         this,
         "SteamGameFilter",
-        _("Filter repeated keys"),
+        _("Exclude raw game keys"),
         true,
         {},
         {},
-        {_("Filter held-key counts in game input contexts; input method "
-           "commits still count.")}};
+        {_("Do not count raw keys or input method commits from detected game "
+           "input contexts.")}};
     TooltipOption<std::string> steamGameIds{
         this,
         "SteamGameIds",
@@ -107,12 +107,13 @@ FCITX_CONFIGURATION(
     knownSteamGames_[id + "/Ignored"] = "True";
   }
 
-  std::set<std::string> steamGamePrograms() const {
+  std::set<std::string>
+  steamGamePrograms(const std::set<std::string> &running) const {
     std::set<std::string> programs;
-    if (!*steamGameFilter)
+    if (!*steamGameExclusion)
       return programs;
     for (const auto &id : knownSteamGames_.subItems()) {
-      if (!steamGameConfirmed(id) || steamGameIgnored(id) ||
+      if (!running.count(id) || !steamGameConfirmed(id) || steamGameIgnored(id) ||
           !matchesSteamGames({id}, *steamGameIds))
         continue;
       if (const auto value = knownSteamGames_.get(id + "/Programs")) {

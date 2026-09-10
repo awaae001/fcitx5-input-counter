@@ -106,14 +106,14 @@ std::set<std::string> splitGameList(std::string_view value) {
   return result;
 }
 
-bool shouldFilterGameKeys(std::string_view program,
-                          const std::set<std::string> &gamePrograms,
-                          bool enabled, bool running, bool unknownFallback) {
-  if (!enabled)
+bool shouldExcludeGameInput(std::string_view program,
+                            const std::set<std::string> &gamePrograms,
+                            bool enabled, bool running, bool unknownFallback) {
+  if (!enabled || !running)
     return false;
   if (!program.empty())
     return gamePrograms.count(std::string(program)) != 0;
-  return unknownFallback && running;
+  return unknownFallback;
 }
 
 std::string steamGameName(const std::string &id) {

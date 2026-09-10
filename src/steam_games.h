@@ -18,8 +18,8 @@ bool matchesSteamGames(const std::set<std::string> &running,
                        std::string_view configuredIds);
 std::string steamGameName(const std::string &id);
 std::set<std::string> splitGameList(std::string_view list);
-bool shouldFilterGameKeys(std::string_view program,
-                          const std::set<std::string> &gamePrograms,
-                          bool enabled, bool running, bool unknownFallback);
+bool shouldExcludeGameInput(std::string_view program,
+                            const std::set<std::string> &gamePrograms,
+                            bool enabled, bool running, bool unknownFallback);
 } // namespace inputcounter
 #endif

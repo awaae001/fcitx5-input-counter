@@ -8,11 +8,11 @@ msgstr ""
 msgid "Input Counter"
 msgstr "输入计数器"
 
-msgid "Filter repeated keys"
-msgstr "过滤连发"
+msgid "Exclude raw game keys"
+msgstr "排除游戏原始按键"
 
-msgid "Filter held-key counts in game input contexts; input method commits still count."
-msgstr "过滤游戏输入上下文中的长按连发计数；输入法提交的文本仍正常计数。"
+msgid "Do not count raw keys or input method commits from detected game input contexts."
+msgstr "不统计已识别游戏输入上下文中的原始按键和输入法提交文本。"
 
 msgid "Steam game AppIDs"
 msgstr "Steam 游戏 AppID"

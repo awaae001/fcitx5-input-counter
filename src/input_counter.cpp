@@ -15,7 +15,6 @@
 #include <fcitx-utils/event.h>
 #include <fcitx-utils/i18n.h>
 #include <fcitx-utils/key.h>
-#include <fcitx-utils/keysym.h>
 #include <fcitx-utils/log.h>
 #include <fcitx-utils/misc.h>
 #include <fcitx-utils/utf8.h>
@@ -43,14 +42,6 @@ namespace inputcounter
     /// How often pending counts are written to the database, in microseconds.
     constexpr std::uint64_t kFlushIntervalUsec = 60 * 1000 * 1000;
     constexpr std::uint64_t kGamePollIntervalUsec = 3 * 1000 * 1000;
-
-    std::uint64_t physicalKey(const fcitx::KeyEvent &event)
-    {
-      const auto key = event.rawKey();
-      return key.code() != 0 ? (std::uint64_t{1} << 32) |
-                                   static_cast<std::uint32_t>(key.code())
-                             : static_cast<std::uint32_t>(key.sym());
-    }
 
     fcitx::Instance *requireInstance(fcitx::AddonManager *manager)
     {
@@ -138,9 +129,9 @@ namespace inputcounter
         fcitx::EventType::InputContextCommitString,
         fcitx::EventWatcherPhase::Default, [this](fcitx::Event &event)
         {
-        const auto &commitEvent =
-            static_cast<fcitx::CommitStringEvent &>(event);
-        count(commitEvent.text()); });
+        const auto &commitEvent = static_cast<fcitx::CommitStringEvent &>(event);
+        if (!excludeGameInput(commitEvent.inputContext()))
+          count(commitEvent.text()); });
 
     commitWithCursorWatcher_ = instance_->watchEvent(
         fcitx::EventType::InputContextCommitStringWithCursor,
@@ -148,7 +139,8 @@ namespace inputcounter
         {
         const auto &commitEvent =
             static_cast<fcitx::CommitStringWithCursorEvent &>(event);
-        count(commitEvent.text()); });
+        if (!excludeGameInput(commitEvent.inputContext()))
+          count(commitEvent.text()); });
 
     refreshSteamGames();
     gamePollEvent_ = instance_->eventLoop().addTimeEvent(
@@ -158,7 +150,6 @@ namespace inputcounter
           try
           {
             refreshSteamGames();
-            gameKeys_.expire(fcitx::now(CLOCK_MONOTONIC));
           }
           catch (const std::exception &error)
           {
@@ -168,33 +159,6 @@ namespace inputcounter
           // sd-event time sources are one-shot; re-arm after each fire.
           gamePollEvent_->setOneShot();
           return true; });
-    for (const auto type : {fcitx::EventType::InputContextFocusOut,
-                            fcitx::EventType::InputContextDestroyed,
-                            fcitx::EventType::InputContextReset,
-                            fcitx::EventType::InputContextSwitchInputMethod})
-    {
-      gameContextWatchers_.push_back(instance_->watchEvent(
-          type, fcitx::EventWatcherPhase::PreInputMethod,
-          [this](fcitx::Event &event)
-          {
-            if (static_cast<fcitx::InputContextEvent &>(event).inputContext() ==
-                gameKeyContext_)
-              clearGameKeys();
-          }));
-    }
-    keyReleaseWatcher_ = instance_->watchEvent(
-        fcitx::EventType::InputContextKeyEvent,
-        fcitx::EventWatcherPhase::PreInputMethod, [this](fcitx::Event &event)
-        {
-          const auto &keyEvent = static_cast<fcitx::KeyEvent &>(event);
-          if (keyEvent.isRelease() &&
-              keyEvent.inputContext() == gameKeyContext_) {
-            const auto chars = gameKeys_.release(physicalKey(keyEvent),
-                                                 fcitx::now(CLOCK_MONOTONIC));
-            if (filterGameKeys(keyEvent.inputContext()))
-              recordChars(chars);
-          } });
-
     keyWatcher_ = instance_->watchEvent(
         fcitx::EventType::InputContextKeyEvent,
         fcitx::EventWatcherPhase::PostInputMethod, [this](fcitx::Event &event)
@@ -204,20 +168,10 @@ namespace inputcounter
         if (keyEvent.isRelease() || keyEvent.filtered()) {
           return;
         }
-        if (const auto text = TextCounter::textForKey(key); text.has_value()) {
-          if (!filterGameKeys(keyEvent.inputContext())) {
-            clearGameKeys();
-            count(*text);
-          } else {
-            if (gameKeyContext_ != keyEvent.inputContext()) {
-              clearGameKeys();
-              gameKeyContext_ = keyEvent.inputContext();
-            }
-            gameKeys_.press(physicalKey(keyEvent), textCounter_.count(*text),
-                            keyEvent.rawKey().states().test(fcitx::KeyState::Repeat),
-                            fcitx::now(CLOCK_MONOTONIC));
-          }
-        } });
+        if (excludeGameInput(keyEvent.inputContext()))
+          return;
+        if (const auto text = TextCounter::textForKey(key); text.has_value())
+          count(*text); });
 
     flushEvent_ = instance_->eventLoop().addTimeEvent(
         CLOCK_MONOTONIC, fcitx::now(CLOCK_MONOTONIC) + kFlushIntervalUsec,
@@ -247,14 +201,12 @@ namespace inputcounter
   void InputCounterAddon::reloadConfig()
   {
     settings_.reload();
-    clearGameKeys();
     refreshSteamGames();
   }
 
   void InputCounterAddon::setConfig(const fcitx::RawConfig &config)
   {
     settings_.set(config);
-    clearGameKeys();
     refreshSteamGames();
   }
 
@@ -283,12 +235,6 @@ namespace inputcounter
     database_->recordChars(static_cast<std::int64_t>(std::time(nullptr)), chars);
   }
 
-  void InputCounterAddon::clearGameKeys()
-  {
-    gameKeys_.clear();
-    gameKeyContext_ = nullptr;
-  }
-
   void InputCounterAddon::refreshSteamGames()
   {
     const auto games = runningSteamGames();
@@ -301,7 +247,7 @@ namespace inputcounter
       if (detectedSteamGames_.count(id) == 0)
         notifySteamGameStarted(id, steamGameName(id));
       changed |= settings_.updateSteamGame(id, steamGameName(id), programs);
-      if (*settings_.steamGameFilter)
+      if (*settings_.steamGameExclusion)
       {
         if (settings_.steamGameConfirmed(id) &&
             !settings_.steamGameIgnored(id))
@@ -313,16 +259,8 @@ namespace inputcounter
     detectedSteamGames_ = detected;
     const bool active = matchesSteamGames(running, *settings_.steamGameIds);
     if (active != steamGameRunning_)
-    {
-      clearGameKeys();
       steamGameRunning_ = active;
-    }
-    auto programs = settings_.steamGamePrograms();
-    if (programs != gamePrograms_)
-    {
-      clearGameKeys();
-      gamePrograms_ = std::move(programs);
-    }
+    gamePrograms_ = settings_.steamGamePrograms(running);
     if (changed && !settings_.saveKnownSteamGames())
     {
       FCITX_WARN() << "inputcounter could not save Steam game list";
@@ -408,7 +346,6 @@ namespace inputcounter
       FCITX_WARN() << "inputcounter could not save confirmed Steam game";
     pendingGamePrompts_.erase(id);
     gamePromptNotifications_.erase(id);
-    clearGameKeys();
     refreshSteamGames();
   }
 
@@ -419,15 +356,15 @@ namespace inputcounter
       FCITX_WARN() << "inputcounter could not save ignored Steam game";
     pendingGamePrompts_.erase(id);
     gamePromptNotifications_.erase(id);
-    clearGameKeys();
     refreshSteamGames();
   }
 
-  bool InputCounterAddon::filterGameKeys(fcitx::InputContext *inputContext) const
+  bool InputCounterAddon::excludeGameInput(
+      fcitx::InputContext *inputContext) const
   {
-    return shouldFilterGameKeys(inputContext->program(), gamePrograms_,
-                                *settings_.steamGameFilter, steamGameRunning_,
-                                *settings_.steamUnknownProgramFallback);
+    return shouldExcludeGameInput(
+        inputContext->program(), gamePrograms_, *settings_.steamGameExclusion,
+        steamGameRunning_, *settings_.steamUnknownProgramFallback);
   }
 
   void InputCounterAddon::flush()
