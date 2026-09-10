@@ -291,39 +291,31 @@ namespace inputcounter
 
   void InputCounterAddon::refreshSteamGames()
   {
-    const auto detected = runningSteamGames();
-    for (const auto &id : detected)
+    const auto games = runningSteamGames();
+    std::set<std::string> detected;
+    std::set<std::string> running;
+    bool changed = false;
+    for (const auto &[id, programs] : games)
     {
+      detected.insert(id);
       if (detectedSteamGames_.count(id) == 0)
         notifySteamGameStarted(id, steamGameName(id));
-    }
-    detectedSteamGames_ = detected;
-    std::set<std::string> running;
-    if (*settings_.steamGameFilter)
-    {
-      for (const auto &id : detected)
+      changed |= settings_.updateSteamGame(id, steamGameName(id), programs);
+      if (*settings_.steamGameFilter)
       {
         if (settings_.steamGameConfirmed(id) &&
             !settings_.steamGameIgnored(id))
           running.insert(id);
+        else if (!settings_.steamGameIgnored(id))
+          promptForSteamGame(id, settings_.knownSteamGameName(id));
       }
     }
+    detectedSteamGames_ = detected;
     const bool active = matchesSteamGames(running, *settings_.steamGameIds);
     if (active != steamGameRunning_)
     {
       clearGameKeys();
       steamGameRunning_ = active;
-    }
-    bool changed = false;
-    for (const auto &id : detected)
-    {
-      changed |= settings_.addSteamGame(id, steamGameName(id));
-      if (*settings_.steamGameFilter &&
-          !settings_.steamGameConfirmed(id) &&
-          !settings_.steamGameIgnored(id))
-      {
-        promptForSteamGame(id, settings_.knownSteamGameName(id));
-      }
     }
     auto programs = settings_.steamGamePrograms();
     if (programs != gamePrograms_)
@@ -376,9 +368,7 @@ namespace inputcounter
     pendingGamePrompts_.insert(id);
     const auto displayName = name.empty() ? std::string("Steam App ") + id
                                           : name;
-    std::string body = _(
-        "Steam detected %1 (AppID: %2). Focus the game before choosing Yes "
-        "so its program name can be recorded.");
+    std::string body = _("Steam detected %1 (AppID: %2). Is it a game?");
     const auto first = body.find("%1");
     if (first != std::string::npos)
       body.replace(first, 2, displayName);
@@ -413,10 +403,7 @@ namespace inputcounter
 
   void InputCounterAddon::confirmSteamGame(const std::string &id)
   {
-    auto *inputContext = instance_->mostRecentInputContext();
-    const auto program =
-        inputContext == nullptr ? std::string{} : inputContext->program();
-    settings_.confirmSteamGame(id, program);
+    settings_.confirmSteamGame(id);
     if (!settings_.saveKnownSteamGames())
       FCITX_WARN() << "inputcounter could not save confirmed Steam game";
     pendingGamePrompts_.erase(id);

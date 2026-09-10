@@ -22,9 +22,11 @@ Game filtering is enabled by default. It **only filters raw-key counting**;
 always count, including Chinese, English, punctuation, and emoji. It never
 consumes or modifies application key events.
 
-- A known game program is matched exactly against Fcitx's input-context program
-  name. Switching to a recognized non-game application restores normal counting,
-  even with a game running in the background.
+- Every process carrying a game's Steam AppID contributes its executable names;
+  these are matched exactly against Fcitx's input-context program name. Multiple
+  processes and windows of one game are therefore supported. Switching to a
+  recognized non-game application restores normal counting, even with a game
+  running in the background.
 - If the program name is empty, a matching Steam game process enables filtering
   as a fallback. This fallback can be disabled. An unknown **nonempty** program
   name is not automatically treated as a game.

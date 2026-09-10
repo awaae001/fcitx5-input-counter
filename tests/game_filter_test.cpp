@@ -102,8 +102,22 @@ int main() {
                          std::ios::binary);
     stream.write(env, sizeof(env) - 1);
     stream.close();
-    require(runningSteamGames(path) == std::set<std::string>{"413150"},
-            "process scan failed");
+    std::ofstream(std::filesystem::path(path) / "123/comm") << "StardewValley\n";
+    const char command[] = "/games/StardewValley\0--launch-option\0";
+    std::ofstream commandStream(std::filesystem::path(path) / "123/cmdline",
+                                std::ios::binary);
+    commandStream.write(command, sizeof(command) - 1);
+    commandStream.close();
+    std::ofstream secondEnvironment(
+        std::filesystem::path(path) / "124/environ", std::ios::binary);
+    secondEnvironment.write(env, sizeof(env) - 1);
+    secondEnvironment.close();
+    std::ofstream(std::filesystem::path(path) / "124/comm")
+        << "StardewModdingAPI\n";
+    require(runningSteamGames(path) ==
+                RunningSteamGames{{"413150",
+                                   {"StardewModdingAPI", "StardewValley"}}},
+            "multiple game processes were not collected");
     require(runningSteamGames(std::filesystem::path(path) / "missing").empty(),
             "unavailable proc should return empty");
   } catch (...) {

@@ -29,8 +29,8 @@ msgstr "无法识别输入程序时，使用 Steam 游戏运行状态作为过�
 msgid "Is this a game?"
 msgstr "这是游戏吗？"
 
-msgid "Steam detected %1 (AppID: %2). Focus the game before choosing Yes so its program name can be recorded."
-msgstr "Steam 检测到 %1（AppID：%2）。选择“是”之前请先聚焦游戏，以便记录其程序名。"
+msgid "Steam detected %1 (AppID: %2). Is it a game?"
+msgstr "Steam 检测到 %1（AppID：%2）。这是游戏吗？"
 
 msgid "Yes, this is a game"
 msgstr "是，这是游戏"

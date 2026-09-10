@@ -13,6 +13,7 @@
 #include <fcitx-config/option.h>
 #include <fcitx-config/rawconfig.h>
 #include <fcitx-utils/i18n.h>
+#include <fcitx-utils/stringutils.h>
 
 #include "steam_games.h"
 
@@ -65,14 +66,26 @@ FCITX_CONFIGURATION(
     reloadKnownSteamGames();
   }
 
-  bool addSteamGame(const std::string &id, const std::string &name) {
-    if (knownSteamGames_.get(id))
-      return false;
-    knownSteamGames_[id + "/Name"] = name;
-    knownSteamGames_[id + "/Programs"] = "";
-    knownSteamGames_[id + "/Confirmed"] = "False";
-    knownSteamGames_[id + "/Ignored"] = "False";
-    return true;
+  bool updateSteamGame(const std::string &id, const std::string &name,
+                       const std::set<std::string> &programs) {
+    bool changed = false;
+    if (!knownSteamGames_.get(id)) {
+      knownSteamGames_[id + "/Confirmed"] = "False";
+      knownSteamGames_[id + "/Ignored"] = "False";
+      changed = true;
+    }
+    const auto currentName = knownSteamGames_.get(id + "/Name");
+    if (!name.empty() && (!currentName || currentName->value() != name)) {
+      knownSteamGames_[id + "/Name"] = name;
+      changed = true;
+    }
+    const auto programList = fcitx::stringutils::join(programs, ",");
+    const auto currentPrograms = knownSteamGames_.get(id + "/Programs");
+    if (!currentPrograms || currentPrograms->value() != programList) {
+      knownSteamGames_[id + "/Programs"] = programList;
+      changed = true;
+    }
+    return changed;
   }
 
   std::string knownSteamGameName(const std::string &id) const {
@@ -84,8 +97,7 @@ FCITX_CONFIGURATION(
 
   bool steamGameIgnored(const std::string &id) const { return steamGameFlag(id, "Ignored"); }
 
-  void confirmSteamGame(const std::string &id, const std::string &program) {
-    knownSteamGames_[id + "/Programs"] = program;
+  void confirmSteamGame(const std::string &id) {
     knownSteamGames_[id + "/Confirmed"] = "True";
     knownSteamGames_[id + "/Ignored"] = "False";
   }

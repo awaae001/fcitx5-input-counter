@@ -23,6 +23,7 @@ std::string readBounded(const std::filesystem::path &path, std::size_t limit) {
   result.resize(static_cast<std::size_t>(stream.gcount()));
   return result;
 }
+
 } // namespace
 
 std::set<std::string> steamIdsFromEnvironment(std::string_view environment) {
@@ -49,8 +50,8 @@ std::set<std::string> steamIdsFromEnvironment(std::string_view environment) {
   return {};
 }
 
-std::set<std::string> runningSteamGames(const std::filesystem::path &proc) {
-  std::set<std::string> result;
+RunningSteamGames runningSteamGames(const std::filesystem::path &proc) {
+  RunningSteamGames result;
   std::error_code error;
   std::filesystem::directory_iterator it(proc, error), end;
   for (; !error && it != end; it.increment(error)) {
@@ -60,9 +61,26 @@ std::set<std::string> runningSteamGames(const std::filesystem::path &proc) {
     struct stat status{};
     if (::stat(it->path().c_str(), &status) != 0 || status.st_uid != ::getuid())
       continue;
-    const auto ids =
-        steamIdsFromEnvironment(readBounded(it->path() / "environ", 65536));
-    result.insert(ids.begin(), ids.end());
+    for (const auto &id :
+         steamIdsFromEnvironment(readBounded(it->path() / "environ", 65536))) {
+      auto &programs = result[id];
+      auto add = [&programs](std::string name) {
+        while (!name.empty() && (name.back() == '\0' || name.back() == '\n'))
+          name.pop_back();
+        if (!name.empty() &&
+            name.find_first_of(" \t\r\n,") == std::string::npos)
+          programs.insert(std::move(name));
+      };
+      add(readBounded(it->path() / "comm", 256));
+      const auto command = readBounded(it->path() / "cmdline", 4096);
+      add(std::filesystem::path(command.substr(0, command.find('\0')))
+              .filename()
+              .string());
+      std::error_code linkError;
+      add(std::filesystem::read_symlink(it->path() / "exe", linkError)
+              .filename()
+              .string());
+    }
   }
   return result;
 }
