@@ -6,21 +6,22 @@
 
 #include <fcitx-config/iniparser.h>
 
-namespace inputcounter {
+namespace inputcounter
+{
 
-namespace {
+  namespace
+  {
 
-constexpr char kConfigPath[] = "conf/inputcounter.conf";
+    constexpr char kConfigPath[] = "conf/inputcounter.conf";
 
-} // namespace
+  } // namespace
 
-InputCounterSettings::InputCounterSettings() { reload(); }
-
-void InputCounterSettings::reload() { fcitx::readAsIni(config_, kConfigPath); }
-
-void InputCounterSettings::set(const fcitx::RawConfig &config) {
-  config_.load(config, true);
-  fcitx::safeSaveAsIni(config_, kConfigPath);
-}
+  InputCounterSettings::InputCounterSettings() { reload(); }
+  void InputCounterSettings::reload() { fcitx::readAsIni(config_, kConfigPath); }
+  void InputCounterSettings::set(const fcitx::RawConfig &config)
+  {
+    config_.load(config, true);
+    fcitx::safeSaveAsIni(config_, kConfigPath);
+  }
 
 } // namespace inputcounter

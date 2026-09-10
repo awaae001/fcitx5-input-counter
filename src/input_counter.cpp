@@ -49,8 +49,8 @@ namespace inputcounter
     {
       const auto key = event.rawKey();
       return key.code() != 0 ? (std::uint64_t{1} << 32) |
-                                  static_cast<std::uint32_t>(key.code())
-                            : static_cast<std::uint32_t>(key.sym());
+                                   static_cast<std::uint32_t>(key.code())
+                             : static_cast<std::uint32_t>(key.sym());
     }
 
     fcitx::Instance *requireInstance(fcitx::AddonManager *manager)
@@ -66,7 +66,7 @@ namespace inputcounter
   } // namespace
 
   InputCounterAddon::InputCounterAddon(fcitx::AddonManager *manager)
-      : instance_(requireInstance(manager)), quickCounter_(*instance_)
+      : instance_(requireInstance(manager))
   {
     try
     {
@@ -111,7 +111,6 @@ namespace inputcounter
       throw std::runtime_error(
           "inputcounter could not register its status action");
     }
-    quickCounter_.setVisible(settings_.quickCounterEnabled());
 
     instance_->inputContextManager().foreach (
         [this](fcitx::InputContext *inputContext)
@@ -135,7 +134,8 @@ namespace inputcounter
         {
         const auto &commitEvent =
             static_cast<fcitx::CommitStringEvent &>(event);
-        count(commitEvent.text(), commitEvent.inputContext()); });
+        count(commitEvent.text());
+    });
 
     commitWithCursorWatcher_ = instance_->watchEvent(
         fcitx::EventType::InputContextCommitStringWithCursor,
@@ -143,41 +143,44 @@ namespace inputcounter
         {
         const auto &commitEvent =
             static_cast<fcitx::CommitStringWithCursorEvent &>(event);
-        count(commitEvent.text(), commitEvent.inputContext()); });
+        count(commitEvent.text()); });
 
     fcitx::readAsIni(knownSteamGames_, kKnownGamesPath);
     refreshSteamGames();
     gamePollEvent_ = instance_->eventLoop().addTimeEvent(
         CLOCK_MONOTONIC, fcitx::now(CLOCK_MONOTONIC) + kGamePollIntervalUsec,
-        0, [this](fcitx::EventSourceTime *, std::uint64_t) {
+        0, [this](fcitx::EventSourceTime *, std::uint64_t)
+        {
           refreshSteamGames();
           gameKeys_.expire(fcitx::now(CLOCK_MONOTONIC));
           gamePollEvent_->setNextInterval(kGamePollIntervalUsec);
-          return true;
-        });
+          return true; });
     for (const auto type : {fcitx::EventType::InputContextFocusOut,
                             fcitx::EventType::InputContextDestroyed,
                             fcitx::EventType::InputContextReset,
-                            fcitx::EventType::InputContextSwitchInputMethod}) {
+                            fcitx::EventType::InputContextSwitchInputMethod})
+    {
       gameContextWatchers_.push_back(instance_->watchEvent(
           type, fcitx::EventWatcherPhase::PreInputMethod,
-          [this](fcitx::Event &event) {
+          [this](fcitx::Event &event)
+          {
             if (static_cast<fcitx::InputContextEvent &>(event).inputContext() ==
-                gameKeyContext_) clearGameKeys();
+                gameKeyContext_)
+              clearGameKeys();
           }));
     }
     keyReleaseWatcher_ = instance_->watchEvent(
         fcitx::EventType::InputContextKeyEvent,
-        fcitx::EventWatcherPhase::PreInputMethod, [this](fcitx::Event &event) {
+        fcitx::EventWatcherPhase::PreInputMethod, [this](fcitx::Event &event)
+        {
           const auto &keyEvent = static_cast<fcitx::KeyEvent &>(event);
           if (keyEvent.isRelease() &&
               keyEvent.inputContext() == gameKeyContext_) {
             const auto chars = gameKeys_.release(physicalKey(keyEvent),
                                                  fcitx::now(CLOCK_MONOTONIC));
             if (filterGameKeys(keyEvent.inputContext()))
-              recordChars(chars, keyEvent.inputContext());
-          }
-        });
+              recordChars(chars);
+          } });
 
     keyWatcher_ = instance_->watchEvent(
         fcitx::EventType::InputContextKeyEvent,
@@ -191,7 +194,7 @@ namespace inputcounter
         if (const auto text = TextCounter::textForKey(key); text.has_value()) {
           if (!filterGameKeys(keyEvent.inputContext())) {
             clearGameKeys();
-            count(*text, keyEvent.inputContext());
+            count(*text);
           } else {
             if (gameKeyContext_ != keyEvent.inputContext()) {
               clearGameKeys();
@@ -221,7 +224,6 @@ namespace inputcounter
     fcitx::readAsIni(knownSteamGames_, kKnownGamesPath);
     clearGameKeys();
     refreshSteamGames();
-    quickCounter_.setVisible(settings_.quickCounterEnabled());
   }
 
   void InputCounterAddon::setConfig(const fcitx::RawConfig &config)
@@ -231,11 +233,9 @@ namespace inputcounter
     fcitx::readAsIni(knownSteamGames_, kKnownGamesPath);
     clearGameKeys();
     refreshSteamGames();
-    quickCounter_.setVisible(settings_.quickCounterEnabled());
   }
 
-  void InputCounterAddon::count(std::string_view text,
-                                fcitx::InputContext *inputContext)
+  void InputCounterAddon::count(std::string_view text)
   {
     const auto codePoints =
         text.empty() ? 0 : fcitx_utf8_strnlen_validated(text.data(), text.size());
@@ -250,15 +250,14 @@ namespace inputcounter
     }
 
     const auto chars = static_cast<std::uint64_t>(textCounter_.count(text));
-    recordChars(chars, inputContext);
+    recordChars(chars);
   }
 
-  void InputCounterAddon::recordChars(std::uint64_t chars,
-                                      fcitx::InputContext *inputContext)
+  void InputCounterAddon::recordChars(std::uint64_t chars)
   {
-    if (chars == 0) return;
+    if (chars == 0)
+      return;
     database_->recordChars(static_cast<std::int64_t>(std::time(nullptr)), chars);
-    quickCounter_.record(chars, inputContext);
   }
 
   void InputCounterAddon::clearGameKeys()
@@ -270,41 +269,52 @@ namespace inputcounter
   void InputCounterAddon::refreshSteamGames()
   {
     const auto running = settings_.steamGameFilterEnabled()
-                             ? runningSteamGames() : std::set<std::string>{};
+                             ? runningSteamGames()
+                             : std::set<std::string>{};
     const bool active = matchesSteamGames(running, settings_.steamGameIds());
-    if (active != steamGameRunning_) {
+    if (active != steamGameRunning_)
+    {
       clearGameKeys();
       steamGameRunning_ = active;
     }
     bool changed = false;
     // Confirmed mapping. Never infer mappings from the foreground application.
-    if (!knownSteamGames_.get("413150")) {
+    if (!knownSteamGames_.get("413150"))
+    {
       knownSteamGames_["413150/Name"] = "Stardew Valley";
       knownSteamGames_["413150/Programs"] = "StardewModdingAPI";
       changed = true;
     }
-    for (const auto &id : running) {
-      if (!knownSteamGames_.get(id)) {
+    for (const auto &id : running)
+    {
+      if (!knownSteamGames_.get(id))
+      {
         knownSteamGames_[id + "/Name"] = steamGameName(id);
         knownSteamGames_[id + "/Programs"] = "";
         changed = true;
       }
     }
     std::set<std::string> programs;
-    if (settings_.steamGameFilterEnabled()) {
-      for (const auto &id : knownSteamGames_.subItems()) {
-        if (!matchesSteamGames({id}, settings_.steamGameIds())) continue;
-        if (const auto value = knownSteamGames_.get(id + "/Programs")) {
+    if (settings_.steamGameFilterEnabled())
+    {
+      for (const auto &id : knownSteamGames_.subItems())
+      {
+        if (!matchesSteamGames({id}, settings_.steamGameIds()))
+          continue;
+        if (const auto value = knownSteamGames_.get(id + "/Programs"))
+        {
           const auto entries = splitGameList(value->value());
           programs.insert(entries.begin(), entries.end());
         }
       }
     }
-    if (programs != gamePrograms_) {
+    if (programs != gamePrograms_)
+    {
       clearGameKeys();
       gamePrograms_ = std::move(programs);
     }
-    if (changed && !fcitx::safeSaveAsIni(knownSteamGames_, kKnownGamesPath)) {
+    if (changed && !fcitx::safeSaveAsIni(knownSteamGames_, kKnownGamesPath))
+    {
       FCITX_WARN() << "inputcounter could not save Steam game list";
       knownSteamGames_ = fcitx::RawConfig();
       fcitx::readAsIni(knownSteamGames_, kKnownGamesPath);
@@ -336,7 +346,6 @@ namespace inputcounter
   {
     auto &statusArea = inputContext->statusArea();
     statusArea.addAction(fcitx::StatusGroup::AfterInputMethod, &action_);
-    quickCounter_.attach(*inputContext);
   }
 
 } // namespace inputcounter

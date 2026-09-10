@@ -19,8 +19,6 @@ using TooltipOption =
 
 FCITX_CONFIGURATION(
     InputCounterConfig,
-    fcitx::Option<bool> quickCounter{this, "QuickCounter", _("Quick counter"),
-                                     true};
     TooltipOption<bool> steamGameFilter{
         this,
         "SteamGameFilter",
@@ -65,9 +63,6 @@ public:
   const fcitx::Configuration *configuration() const noexcept {
     return &config_;
   }
-
-  /// Returns whether the status-area quick counter is enabled.
-  bool quickCounterEnabled() const noexcept { return *config_.quickCounter; }
 
   bool steamGameFilterEnabled() const noexcept {
     return *config_.steamGameFilter;

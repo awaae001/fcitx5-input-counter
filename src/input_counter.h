@@ -19,7 +19,6 @@
 
 #include "game_key_filter.h"
 #include "input_counter_settings.h"
-#include "quick_counter.h"
 #include "text_counter.h"
 
 namespace fcitx {
@@ -40,7 +39,7 @@ public:
   explicit InputCounterAddon(fcitx::AddonManager *manager);
   ~InputCounterAddon() override;
 
-  /// Reloads addon settings and reapplies quick-counter visibility.
+  /// Reloads addon settings.
   void reloadConfig() override;
   /// Returns the settings exposed through the Fcitx configuration UI.
   const fcitx::Configuration *getConfig() const override {
@@ -50,8 +49,8 @@ public:
   void setConfig(const fcitx::RawConfig &config) override;
 
 private:
-  void count(std::string_view text, fcitx::InputContext *inputContext);
-  void recordChars(std::uint64_t chars, fcitx::InputContext *inputContext);
+  void count(std::string_view text);
+  void recordChars(std::uint64_t chars);
   void refreshSteamGames();
   bool filterGameKeys(fcitx::InputContext *inputContext) const;
   void clearGameKeys();
@@ -68,7 +67,6 @@ private:
   fcitx::RawConfig knownSteamGames_;
   std::unique_ptr<DatabaseManager> database_;
   std::unique_ptr<StatisticsBackend> statistics_;
-  QuickCounter quickCounter_;
   fcitx::SimpleAction action_;
   std::unique_ptr<fcitx::EventSourceTime> flushEvent_;
   std::unique_ptr<fcitx::EventSourceTime> gamePollEvent_;

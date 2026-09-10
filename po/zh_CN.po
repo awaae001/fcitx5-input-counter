@@ -8,9 +8,6 @@ msgstr ""
 msgid "Input Counter"
 msgstr "输入计数器"
 
-msgid "Quick counter"
-msgstr "快捷计数器"
-
 msgid "Filter repeated keys"
 msgstr "过滤连发"
 
@@ -28,18 +25,6 @@ msgstr "Steam 运行状态兜底"
 
 msgid "Use Steam game running status when the input program cannot be identified."
 msgstr "无法识别输入程序时，使用 Steam 游戏运行状态作为过滤依据。"
-
-msgid "Count"
-msgstr "计数"
-
-msgid "Start recording"
-msgstr "开始记录"
-
-msgid "Pause recording"
-msgstr "暂停记录"
-
-msgid "Reset"
-msgstr "归零"
 
 msgid ""
 "Committed characters are counted by hour and stored locally; no text is "
