@@ -5,6 +5,7 @@
 
 //! Declares the Fcitx event adapter for input counting.
 
+#include <map>
 #include <memory>
 #include <set>
 #include <string_view>
@@ -52,6 +53,12 @@ private:
   void count(std::string_view text);
   void recordChars(std::uint64_t chars);
   void refreshSteamGames();
+  void notifySteamGameStarted(const std::string &id, const std::string &name);
+  void promptForSteamGame(const std::string &id, const std::string &name);
+  void confirmSteamGame(const std::string &id);
+  void ignoreSteamGame(const std::string &id);
+  bool steamGameConfirmed(const std::string &id) const;
+  bool steamGameIgnored(const std::string &id) const;
   bool filterGameKeys(fcitx::InputContext *inputContext) const;
   void clearGameKeys();
   void flush();
@@ -63,8 +70,14 @@ private:
   GameKeyFilter gameKeys_;
   fcitx::InputContext *gameKeyContext_ = nullptr;
   bool steamGameRunning_ = false;
+  std::set<std::string> detectedSteamGames_;
   std::set<std::string> gamePrograms_;
+  std::set<std::string> pendingGamePrompts_;
+  std::map<std::string, std::uint64_t> gamePromptNotifications_;
+  std::shared_ptr<bool> notificationCallbacksAlive_ =
+      std::make_shared<bool>(true);
   fcitx::RawConfig knownSteamGames_;
+  fcitx::AddonInstance *notifications_ = nullptr;
   std::unique_ptr<DatabaseManager> database_;
   std::unique_ptr<StatisticsBackend> statistics_;
   fcitx::SimpleAction action_;

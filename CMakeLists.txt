@@ -11,6 +11,7 @@ set(CMAKE_AUTOMOC ON)
 
 find_package(Fcitx5Core 5.1.2 REQUIRED)
 find_package(Fcitx5ModuleDBus REQUIRED)
+find_package(Fcitx5ModuleNotifications REQUIRED)
 find_package(Gettext REQUIRED)
 find_package(ICU REQUIRED COMPONENTS i18n uc)
 find_package(SQLite3 REQUIRED)
@@ -41,6 +42,7 @@ target_include_directories(inputcounter PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(inputcounter PRIVATE
     Fcitx5::Core
     Fcitx5::Module::DBus
+    Fcitx5::Module::Notifications
     ICU::i18n
     ICU::uc
     SQLite3::SQLite3

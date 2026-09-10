@@ -26,6 +26,24 @@ msgstr "Steam 运行状态兜底"
 msgid "Use Steam game running status when the input program cannot be identified."
 msgstr "无法识别输入程序时，使用 Steam 游戏运行状态作为过滤依据。"
 
+msgid "Is this a game?"
+msgstr "这是游戏吗？"
+
+msgid "Steam detected %1 (AppID: %2). Focus the game before choosing Yes so its program name can be recorded."
+msgstr "Steam 检测到 %1（AppID：%2）。选择“是”之前请先聚焦游戏，以便记录其程序名。"
+
+msgid "Yes, this is a game"
+msgstr "是，这是游戏"
+
+msgid "No, ignore"
+msgstr "否，忽略"
+
+msgid "Game detected"
+msgstr "检测到游戏"
+
+msgid "Detected that %1 (AppID: %2) has started."
+msgstr "检测到 %1（AppID：%2）已启动。"
+
 msgid ""
 "Committed characters are counted by hour and stored locally; no text is "
 "retained."
