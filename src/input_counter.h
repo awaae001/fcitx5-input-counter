@@ -11,7 +11,6 @@
 #include <string_view>
 #include <vector>
 
-#include <fcitx-config/rawconfig.h>
 #include <fcitx-utils/eventloopinterface.h>
 #include <fcitx-utils/handlertable.h>
 #include <fcitx/action.h>
@@ -43,9 +42,7 @@ public:
   /// Reloads addon settings.
   void reloadConfig() override;
   /// Returns the settings exposed through the Fcitx configuration UI.
-  const fcitx::Configuration *getConfig() const override {
-    return settings_.configuration();
-  }
+  const fcitx::Configuration *getConfig() const override { return &settings_; }
   /// Applies and persists settings received from the Fcitx configuration UI.
   void setConfig(const fcitx::RawConfig &config) override;
 
@@ -57,8 +54,6 @@ private:
   void promptForSteamGame(const std::string &id, const std::string &name);
   void confirmSteamGame(const std::string &id);
   void ignoreSteamGame(const std::string &id);
-  bool steamGameConfirmed(const std::string &id) const;
-  bool steamGameIgnored(const std::string &id) const;
   bool filterGameKeys(fcitx::InputContext *inputContext) const;
   void clearGameKeys();
   void flush();
@@ -76,7 +71,6 @@ private:
   std::map<std::string, std::uint64_t> gamePromptNotifications_;
   std::shared_ptr<bool> notificationCallbacksAlive_ =
       std::make_shared<bool>(true);
-  fcitx::RawConfig knownSteamGames_;
   fcitx::AddonInstance *notifications_ = nullptr;
   std::unique_ptr<DatabaseManager> database_;
   std::unique_ptr<StatisticsBackend> statistics_;

@@ -19,7 +19,8 @@ namespace inputcounter
   {
   public:
     /// Borrows database for this backend's lifetime.
-    explicit StatisticsBackend(DatabaseManager &database) noexcept;
+    explicit StatisticsBackend(DatabaseManager &database) noexcept
+        : database_(database) {}
 
     /// Flushes pending counts and returns overview aggregates.
     StatisticsSummary summary(std::int64_t todayStart,

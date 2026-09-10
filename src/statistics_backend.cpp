@@ -11,9 +11,6 @@
 namespace inputcounter
 {
 
-  StatisticsBackend::StatisticsBackend(DatabaseManager &database) noexcept
-      : database_(database) {}
-
   StatisticsSummary StatisticsBackend::summary(std::int64_t todayStart,
                                                std::int64_t last24HoursStart,
                                                std::int64_t last7DaysStart)

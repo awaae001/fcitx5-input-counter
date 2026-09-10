@@ -3,12 +3,18 @@
 #ifndef FCITX5_INPUT_COUNTER_INPUT_COUNTER_SETTINGS_H
 #define FCITX5_INPUT_COUNTER_INPUT_COUNTER_SETTINGS_H
 
-//! Owns the Fcitx addon configuration and its persistence.
+//! Owns the addon configuration and the persisted Steam game registry.
+
+#include <set>
+#include <string>
 
 #include <fcitx-config/configuration.h>
+#include <fcitx-config/iniparser.h>
 #include <fcitx-config/option.h>
 #include <fcitx-config/rawconfig.h>
 #include <fcitx-utils/i18n.h>
+
+#include "steam_games.h"
 
 namespace inputcounter {
 
@@ -17,8 +23,9 @@ using TooltipOption =
     fcitx::Option<T, fcitx::NoConstrain<T>, fcitx::DefaultMarshaller<T>,
                   fcitx::ToolTipAnnotation>;
 
+/// Fcitx settings plus the separate registry of detected Steam games.
 FCITX_CONFIGURATION(
-    InputCounterConfig,
+    InputCounterSettings,
     TooltipOption<bool> steamGameFilter{
         this,
         "SteamGameFilter",
@@ -45,38 +52,84 @@ FCITX_CONFIGURATION(
         {},
         {},
         {_("Use Steam game running status when the input program cannot be "
-           "identified.")}};);
+           "identified.")}};
 
-/// Loads, exposes, and persists input-counter settings.
-class InputCounterSettings final {
-public:
-  /// Loads settings from the addon configuration file.
-  InputCounterSettings();
-
-  /// Reloads settings from the addon configuration file.
-  void reload();
-
-  /// Applies and persists settings received from Fcitx.
-  void set(const fcitx::RawConfig &config);
-
-  /// Returns the configuration exposed through the Fcitx configuration UI.
-  const fcitx::Configuration *configuration() const noexcept {
-    return &config_;
+  void reload() {
+    fcitx::readAsIni(*this, kConfigPath);
+    reloadKnownSteamGames();
   }
 
-  bool steamGameFilterEnabled() const noexcept {
-    return *config_.steamGameFilter;
+  void set(const fcitx::RawConfig &config) {
+    load(config, true);
+    fcitx::safeSaveAsIni(*this, kConfigPath);
+    reloadKnownSteamGames();
   }
-  const std::string &steamGameIds() const noexcept {
-    return *config_.steamGameIds;
+
+  bool addSteamGame(const std::string &id, const std::string &name) {
+    if (knownSteamGames_.get(id))
+      return false;
+    knownSteamGames_[id + "/Name"] = name;
+    knownSteamGames_[id + "/Programs"] = "";
+    knownSteamGames_[id + "/Confirmed"] = "False";
+    knownSteamGames_[id + "/Ignored"] = "False";
+    return true;
   }
-  bool steamUnknownProgramFallback() const noexcept {
-    return *config_.steamUnknownProgramFallback;
+
+  std::string knownSteamGameName(const std::string &id) const {
+    const auto name = knownSteamGames_.get(id + "/Name");
+    return name ? name->value() : std::string{};
+  }
+
+  bool steamGameConfirmed(const std::string &id) const { return steamGameFlag(id, "Confirmed"); }
+
+  bool steamGameIgnored(const std::string &id) const { return steamGameFlag(id, "Ignored"); }
+
+  void confirmSteamGame(const std::string &id, const std::string &program) {
+    knownSteamGames_[id + "/Programs"] = program;
+    knownSteamGames_[id + "/Confirmed"] = "True";
+    knownSteamGames_[id + "/Ignored"] = "False";
+  }
+
+  void ignoreSteamGame(const std::string &id) {
+    knownSteamGames_[id + "/Confirmed"] = "False";
+    knownSteamGames_[id + "/Ignored"] = "True";
+  }
+
+  std::set<std::string> steamGamePrograms() const {
+    std::set<std::string> programs;
+    if (!*steamGameFilter)
+      return programs;
+    for (const auto &id : knownSteamGames_.subItems()) {
+      if (!steamGameConfirmed(id) || steamGameIgnored(id) ||
+          !matchesSteamGames({id}, *steamGameIds))
+        continue;
+      if (const auto value = knownSteamGames_.get(id + "/Programs")) {
+        const auto entries = splitGameList(value->value());
+        programs.insert(entries.begin(), entries.end());
+      }
+    }
+    return programs;
+  }
+
+  bool saveKnownSteamGames() const { return fcitx::safeSaveAsIni(knownSteamGames_, kKnownGamesPath); }
+
+  void reloadKnownSteamGames() {
+    knownSteamGames_ = fcitx::RawConfig();
+    fcitx::readAsIni(knownSteamGames_, kKnownGamesPath);
   }
 
 private:
-  InputCounterConfig config_;
-};
+  bool steamGameFlag(const std::string &id, const char *name) const {
+    const auto value = knownSteamGames_.get(id + "/" + name);
+    return value != nullptr && value->value() == "True";
+  }
+
+  static constexpr char kConfigPath[] = "conf/inputcounter.conf";
+  static constexpr char kKnownGamesPath[] =
+      "conf/inputcounter-steam-games.conf";
+
+  fcitx::RawConfig knownSteamGames_;
+);
 
 } // namespace inputcounter
 

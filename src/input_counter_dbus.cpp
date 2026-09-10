@@ -40,9 +40,6 @@ namespace inputcounter
 
   } // namespace
 
-  InputCounterDBus::InputCounterDBus(StatisticsBackend &backend) noexcept
-      : backend_(backend) {}
-
   InputCounterDBus::Summary
   InputCounterDBus::getSummary(std::int64_t todayStart,
                                std::int64_t last24HoursStart,

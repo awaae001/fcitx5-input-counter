@@ -32,7 +32,6 @@ add_library(inputcounter MODULE
     src/database_manager.cpp
     src/input_counter.cpp
     src/input_counter_dbus.cpp
-    src/input_counter_settings.cpp
     src/main.cpp
     src/statistics_backend.cpp
     src/steam_games.cpp
