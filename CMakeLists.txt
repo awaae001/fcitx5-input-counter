@@ -35,6 +35,7 @@ add_library(inputcounter MODULE
     src/main.cpp
     src/quick_counter.cpp
     src/statistics_backend.cpp
+    src/steam_games.cpp
     src/text_counter.cpp
 )
 target_include_directories(inputcounter PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
@@ -97,6 +98,10 @@ install(
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(game-filter-test tests/game_filter_test.cpp src/steam_games.cpp)
+    target_include_directories(game-filter-test PRIVATE src)
+    add_test(NAME game-filter-test COMMAND game-filter-test)
+
     add_executable(text-counter-test
         src/text_counter.cpp
         tests/text_counter_test.cpp

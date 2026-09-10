@@ -11,6 +11,24 @@ msgstr "输入计数器"
 msgid "Quick counter"
 msgstr "快捷计数器"
 
+msgid "Filter repeated keys"
+msgstr "过滤连发"
+
+msgid "Filter held-key counts in game input contexts; input method commits still count."
+msgstr "过滤游戏输入上下文中的长按连发计数；输入法提交的文本仍正常计数。"
+
+msgid "Steam game AppIDs"
+msgstr "Steam 游戏 AppID"
+
+msgid "Separate AppIDs with commas or whitespace; leave empty to select all games."
+msgstr "AppID 用逗号或空白分隔；留空表示全部游戏。"
+
+msgid "Steam status fallback"
+msgstr "Steam 运行状态兜底"
+
+msgid "Use Steam game running status when the input program cannot be identified."
+msgstr "无法识别输入程序时，使用 Steam 游戏运行状态作为过滤依据。"
+
 msgid "Count"
 msgstr "计数"
 
