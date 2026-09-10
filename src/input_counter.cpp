@@ -90,7 +90,6 @@ namespace inputcounter
       throw std::runtime_error(
           "inputcounter could not load the notifications addon");
     }
-    FCITX_INFO() << "inputcounter notifications addon loaded";
     auto *dbusAddon = manager->addon("dbus");
     auto *bus = dbusAddon == nullptr ? nullptr
                                      : dbusAddon->call<fcitx::IDBusModule::bus>();
@@ -170,6 +169,8 @@ namespace inputcounter
             FCITX_WARN() << "inputcounter game poll failed: " << error.what();
           }
           gamePollEvent_->setNextInterval(kGamePollIntervalUsec);
+          // sd-event time sources are one-shot; re-arm after each fire.
+          gamePollEvent_->setOneShot();
           return true; });
     for (const auto type : {fcitx::EventType::InputContextFocusOut,
                             fcitx::EventType::InputContextDestroyed,
@@ -228,6 +229,7 @@ namespace inputcounter
         {
         flush();
         flushEvent_->setNextInterval(kFlushIntervalUsec);
+        flushEvent_->setOneShot();
         return true; });
   }
 
@@ -301,17 +303,7 @@ namespace inputcounter
     for (const auto &id : detected)
     {
       if (detectedSteamGames_.count(id) == 0)
-      {
-        const auto name = steamGameName(id);
-        FCITX_INFO() << "inputcounter detected Steam game start: AppID=" << id
-                     << ", Name=" << (name.empty() ? "(unknown)" : name);
-        notifySteamGameStarted(id, name);
-      }
-    }
-    for (const auto &id : detectedSteamGames_)
-    {
-      if (detected.count(id) == 0)
-        FCITX_INFO() << "inputcounter detected Steam game exit: AppID=" << id;
+        notifySteamGameStarted(id, steamGameName(id));
     }
     detectedSteamGames_ = detected;
     std::set<std::string> running;
@@ -377,7 +369,7 @@ namespace inputcounter
   }
 
   void InputCounterAddon::notifySteamGameStarted(const std::string &id,
-                                                  const std::string &name)
+                                                 const std::string &name)
   {
     if (notifications_ == nullptr)
     {
@@ -394,24 +386,17 @@ namespace inputcounter
     const auto second = body.find("%2");
     if (second != std::string::npos)
       body.replace(second, 2, id);
-    const auto notificationId =
-        notifications_->call<fcitx::INotifications::sendNotification>(
-            "Input Counter", 0, "fcitx5-input-counter", _("Game detected"),
-            body, std::vector<std::string>{}, 5000, [](const std::string &) {},
-            [](std::uint32_t) {});
-    FCITX_INFO() << "inputcounter sent game-start notification: AppID=" << id
-                 << ", NotificationId=" << notificationId;
+    notifications_->call<fcitx::INotifications::sendNotification>(
+        "Input Counter", 0, "fcitx5-input-counter", _("Game detected"),
+        body, std::vector<std::string>{}, 5000, [](const std::string &) {},
+        [](std::uint32_t) {});
   }
 
   void InputCounterAddon::promptForSteamGame(const std::string &id,
-                                              const std::string &name)
+                                             const std::string &name)
   {
     if (pendingGamePrompts_.count(id) != 0)
-    {
-      FCITX_INFO() << "inputcounter skipped duplicate game prompt: AppID="
-                   << id;
       return;
-    }
     if (notifications_ == nullptr)
     {
       FCITX_WARN() << "inputcounter cannot prompt for game verdict: "
@@ -419,8 +404,6 @@ namespace inputcounter
       return;
     }
     pendingGamePrompts_.insert(id);
-    FCITX_INFO() << "inputcounter prompting for Steam game verdict: AppID="
-                 << id;
     const auto displayName = name.empty() ? std::string("Steam App ") + id
                                           : name;
     std::string body = _(
@@ -443,24 +426,18 @@ namespace inputcounter
             {
               if (!*alive)
                 return;
-              FCITX_INFO() << "inputcounter game prompt action: AppID=" << id
-                           << ", Action=" << action;
               if (action == "yes")
                 confirmSteamGame(id);
               else if (action == "no")
                 ignoreSteamGame(id);
             },
-            [this, alive, id](std::uint32_t reason)
+            [this, alive, id](std::uint32_t)
             {
               if (!*alive)
                 return;
-              FCITX_INFO() << "inputcounter game prompt closed: AppID=" << id
-                           << ", Reason=" << reason;
               pendingGamePrompts_.erase(id);
               gamePromptNotifications_.erase(id);
             });
-    FCITX_INFO() << "inputcounter sent game verdict prompt: AppID=" << id
-                 << ", NotificationId=" << notification;
     gamePromptNotifications_[id] = notification;
   }
 
@@ -472,9 +449,6 @@ namespace inputcounter
     knownSteamGames_[id + "/Programs"] = program;
     knownSteamGames_[id + "/Confirmed"] = "True";
     knownSteamGames_[id + "/Ignored"] = "False";
-    FCITX_INFO() << "inputcounter confirmed Steam game: AppID=" << id
-                 << ", Program="
-                 << (program.empty() ? "(unknown)" : program);
     if (!fcitx::safeSaveAsIni(knownSteamGames_, kKnownGamesPath))
       FCITX_WARN() << "inputcounter could not save confirmed Steam game";
     pendingGamePrompts_.erase(id);
@@ -487,7 +461,6 @@ namespace inputcounter
   {
     knownSteamGames_[id + "/Confirmed"] = "False";
     knownSteamGames_[id + "/Ignored"] = "True";
-    FCITX_INFO() << "inputcounter ignored Steam game: AppID=" << id;
     if (!fcitx::safeSaveAsIni(knownSteamGames_, kKnownGamesPath))
       FCITX_WARN() << "inputcounter could not save ignored Steam game";
     pendingGamePrompts_.erase(id);
