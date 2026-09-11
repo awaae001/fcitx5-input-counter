@@ -6,10 +6,12 @@
 
 #include <sqlite3.h>
 
-#include <cstdlib>
 #include <filesystem>
 #include <stdexcept>
-#include <system_error>
+
+#include <fcitx-utils/fs.h>
+#include <fcitx-utils/misc.h>
+#include <fcitx-utils/standardpaths.h>
 
 #include "embedded_sql.h"
 
@@ -25,19 +27,22 @@ namespace inputcounter
     public:
       Statement(sqlite3 *db, const char *sql) : db_(db)
       {
-        if (sqlite3_prepare_v2(db_, sql, -1, &stmt_, nullptr) != SQLITE_OK)
+        sqlite3_stmt *statement = nullptr;
+        const auto result =
+            sqlite3_prepare_v2(db_, sql, -1, &statement, nullptr);
+        stmt_.reset(statement);
+        if (result != SQLITE_OK)
         {
           throw std::runtime_error(sqlite3_errmsg(db_));
         }
       }
-      ~Statement() { sqlite3_finalize(stmt_); }
-
       Statement(const Statement &) = delete;
       Statement &operator=(const Statement &) = delete;
 
       void bindInt64(int index, std::int64_t value)
       {
-        if (sqlite3_bind_int64(stmt_, index, static_cast<sqlite3_int64>(value)) !=
+        if (sqlite3_bind_int64(stmt_.get(), index,
+                              static_cast<sqlite3_int64>(value)) !=
             SQLITE_OK)
         {
           throw std::runtime_error(sqlite3_errmsg(db_));
@@ -47,7 +52,7 @@ namespace inputcounter
       /// Steps once, expecting SQLITE_DONE.
       void stepDone()
       {
-        if (sqlite3_step(stmt_) != SQLITE_DONE)
+        if (sqlite3_step(stmt_.get()) != SQLITE_DONE)
         {
           throw std::runtime_error(sqlite3_errmsg(db_));
         }
@@ -56,7 +61,7 @@ namespace inputcounter
       /// Steps once, returning whether a row is available.
       bool stepRow()
       {
-        const int rc = sqlite3_step(stmt_);
+        const int rc = sqlite3_step(stmt_.get());
         if (rc == SQLITE_ROW)
         {
           return true;
@@ -70,55 +75,46 @@ namespace inputcounter
 
       std::int64_t columnInt64(int index) const
       {
-        return static_cast<std::int64_t>(sqlite3_column_int64(stmt_, index));
+        return static_cast<std::int64_t>(
+            sqlite3_column_int64(stmt_.get(), index));
       }
 
       bool columnIsNull(int index) const
       {
-        return sqlite3_column_type(stmt_, index) == SQLITE_NULL;
+        return sqlite3_column_type(stmt_.get(), index) == SQLITE_NULL;
       }
 
     private:
       sqlite3 *db_;
-      sqlite3_stmt *stmt_ = nullptr;
+      fcitx::UniqueCPtr<sqlite3_stmt, sqlite3_finalize> stmt_;
     };
 
     void execSql(sqlite3 *db, const char *sql)
     {
       char *error = nullptr;
-      if (sqlite3_exec(db, sql, nullptr, nullptr, &error) != SQLITE_OK)
+      const auto result = sqlite3_exec(db, sql, nullptr, nullptr, &error);
+      const fcitx::UniqueCPtr<char, sqlite3_free> ownedError(error);
+      if (result != SQLITE_OK)
       {
         std::string message = error != nullptr ? error : "unknown SQLite error";
-        sqlite3_free(error);
         throw std::runtime_error(message);
       }
     }
 
     std::string defaultDatabasePath()
     {
-      std::filesystem::path base;
-      if (const char *xdgDataHome = std::getenv("XDG_DATA_HOME");
-          xdgDataHome != nullptr && *xdgDataHome != '\0')
+      auto base = fcitx::StandardPaths::global().userDirectory(
+          fcitx::StandardPathsType::Data);
+      if (base.empty())
       {
-        base = xdgDataHome;
-      }
-      else if (const char *home = std::getenv("HOME");
-               home != nullptr && *home != '\0')
-      {
-        base = std::filesystem::path(home) / ".local" / "share";
-      }
-      else
-      {
-        throw std::runtime_error("neither XDG_DATA_HOME nor HOME is set");
+        throw std::runtime_error("no writable user data directory is available");
       }
 
       base /= "fcitx5/input-counter";
-      std::error_code ec;
-      std::filesystem::create_directories(base, ec);
-      if (ec)
+      if (!fcitx::fs::makePath(base))
       {
-        throw std::filesystem::filesystem_error(
-            "could not create statistics directory", base, ec);
+        throw std::runtime_error("could not create statistics directory: " +
+                                 base.string());
       }
       return (base / "stats.db").string();
     }

@@ -7,21 +7,18 @@
 #include <QString>
 #include <clocale>
 
-#include "i18n.h"
+#include <fcitx-utils/i18n.h>
+
 #include "main_window.h"
 
 int main(int argc, char *argv[]) {
   std::setlocale(LC_ALL, "");
-  bindtextdomain("fcitx5-input-counter", INPUT_COUNTER_LOCALEDIR);
-  bind_textdomain_codeset("fcitx5-input-counter", "UTF-8");
-  // gettext() looks up the default domain; without this the translations
-  // above are never consulted.
-  textdomain("fcitx5-input-counter");
+  fcitx::registerDomain("fcitx5-input-counter", INPUT_COUNTER_LOCALEDIR);
 
   QApplication app(argc, argv);
   QApplication::setApplicationName(
       QStringLiteral("fcitx5-input-counter-viewer"));
-  QApplication::setApplicationDisplayName(QString(IC_("Input Counter")));
+  QApplication::setApplicationDisplayName(QString(_("Input Counter")));
   // Wayland has no per-window icon: the compositor resolves the icon from
   // the desktop file matching this app id.
   QApplication::setDesktopFileName(

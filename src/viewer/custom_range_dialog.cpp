@@ -22,14 +22,14 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
-#include "i18n.h"
+#include <fcitx-utils/i18n.h>
 
 namespace inputcounter {
 
 std::optional<ChartRange> chooseCustomRange(QWidget &parent,
                                             const ChartRange *current) {
   QDialog dialog(&parent);
-  dialog.setWindowTitle(IC_("Custom time range"));
+  dialog.setWindowTitle(_("Custom time range"));
   dialog.setModal(true);
   dialog.setMinimumWidth(420);
 
@@ -43,12 +43,12 @@ std::optional<ChartRange> chooseCustomRange(QWidget &parent,
   }
 
   auto *scale = new QComboBox(&dialog);
-  scale->addItem(IC_("1 hour"), static_cast<int>(ChartScale::OneHour));
-  scale->addItem(IC_("6 hours"), static_cast<int>(ChartScale::SixHours));
-  scale->addItem(IC_("12 hours"), static_cast<int>(ChartScale::TwelveHours));
-  scale->addItem(IC_("1 day"), static_cast<int>(ChartScale::OneDay));
-  scale->addItem(IC_("1 week"), static_cast<int>(ChartScale::OneWeek));
-  scale->addItem(IC_("1 month"), static_cast<int>(ChartScale::OneMonth));
+  scale->addItem(_("1 hour"), static_cast<int>(ChartScale::OneHour));
+  scale->addItem(_("6 hours"), static_cast<int>(ChartScale::SixHours));
+  scale->addItem(_("12 hours"), static_cast<int>(ChartScale::TwelveHours));
+  scale->addItem(_("1 day"), static_cast<int>(ChartScale::OneDay));
+  scale->addItem(_("1 week"), static_cast<int>(ChartScale::OneWeek));
+  scale->addItem(_("1 month"), static_cast<int>(ChartScale::OneMonth));
   if (current != nullptr) {
     start->setDateTime(current->start());
     end->setDateTime(current->end());
@@ -66,9 +66,9 @@ std::optional<ChartRange> chooseCustomRange(QWidget &parent,
     scale->setCurrentIndex(
         scale->findData(static_cast<int>(ChartScale::SixHours)));
   }
-  form->addRow(IC_("Start time"), start);
-  form->addRow(IC_("End time"), end);
-  form->addRow(IC_("Time scale"), scale);
+  form->addRow(_("Start time"), start);
+  form->addRow(_("End time"), end);
+  form->addRow(_("Time scale"), scale);
 
   auto *bucketRow = new QWidget(&dialog);
   auto *bucketLayout = new QHBoxLayout(bucketRow);
@@ -82,20 +82,20 @@ std::optional<ChartRange> chooseCustomRange(QWidget &parent,
       dialog.style()->standardIcon(QStyle::SP_MessageBoxInformation));
   limitInfo->setAutoRaise(true);
   limitInfo->setFocusPolicy(Qt::NoFocus);
-  const auto limitExplanation = QString(IC_("At most %1 bars can be queried at once. This limit is intended to prevent lag caused by excessive data during database queries, D-Bus transfers, and chart rendering.")).arg(ChartRange::kMaximumBuckets);
+  const auto limitExplanation = QString(_("At most %1 bars can be queried at once. This limit is intended to prevent lag caused by excessive data during database queries, D-Bus transfers, and chart rendering.")).arg(ChartRange::kMaximumBuckets);
   limitInfo->setToolTip(limitExplanation);
-  limitInfo->setAccessibleName(IC_("Why is there a limit?"));
+  limitInfo->setAccessibleName(_("Why is there a limit?"));
   bucketLayout->addWidget(limitInfo);
   bucketLayout->addStretch();
 
-  form->addRow(IC_("Bars"), bucketRow);
+  form->addRow(_("Bars"), bucketRow);
   layout->addLayout(form);
 
   auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok |
                                            QDialogButtonBox::Cancel,
                                        &dialog);
   auto *applyButton = buttons->button(QDialogButtonBox::Ok);
-  applyButton->setText(IC_("Apply"));
+  applyButton->setText(_("Apply"));
   layout->addWidget(buttons);
 
   const auto updateBucketCount = [&] {
@@ -106,12 +106,12 @@ std::optional<ChartRange> chooseCustomRange(QWidget &parent,
     if (const auto *rangeError = std::get_if<ChartRangeError>(&result)) {
       if (*rangeError == ChartRangeError::TooManyBuckets) {
         bucketCount->setText(
-            QString(IC_("%1 / %2 (over limit)"))
+            QString(_("%1 / %2 (over limit)"))
                 .arg(ChartRange::countBuckets(start->dateTime(),
                                               end->dateTime(), selectedScale))
                 .arg(ChartRange::kMaximumBuckets));
       } else {
-        bucketCount->setText(IC_("Invalid range"));
+        bucketCount->setText(_("Invalid range"));
       }
       bucketCount->setStyleSheet(
           QStringLiteral("color: #da4453; font-weight: 600;"));

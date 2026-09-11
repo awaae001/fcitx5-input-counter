@@ -32,13 +32,11 @@ std::runtime_error icuError(const char *operation, UErrorCode status) {
 
 TextCounter::TextCounter() {
   UErrorCode status = U_ZERO_ERROR;
-  iterator_ = ubrk_open(UBRK_CHARACTER, "root", nullptr, 0, &status);
-  if (U_FAILURE(status) || iterator_ == nullptr) {
+  iterator_.reset(ubrk_open(UBRK_CHARACTER, "root", nullptr, 0, &status));
+  if (U_FAILURE(status) || !iterator_) {
     throw icuError("could not create ICU grapheme iterator", status);
   }
 }
-
-TextCounter::~TextCounter() { ubrk_close(iterator_); }
 
 std::optional<std::string> TextCounter::textForKey(const fcitx::Key &key) {
   constexpr fcitx::KeyStates shortcutStates{
@@ -65,28 +63,27 @@ std::optional<std::string> TextCounter::textForKey(const fcitx::Key &key) {
 std::size_t TextCounter::count(std::string_view text) {
   UErrorCode status = U_ZERO_ERROR;
   UText utf8Text = UTEXT_INITIALIZER;
+  const fcitx::ScopeExit closeText([&utf8Text] { utext_close(&utf8Text); });
   utext_openUTF8(&utf8Text, text.data(), static_cast<std::int64_t>(text.size()),
                  &status);
   if (U_FAILURE(status)) {
-    utext_close(&utf8Text);
     throw icuError("could not open UTF-8 text", status);
   }
 
-  ubrk_setUText(iterator_, &utf8Text, &status);
-  utext_close(&utf8Text);
+  ubrk_setUText(iterator_.get(), &utf8Text, &status);
   if (U_FAILURE(status)) {
     throw icuError("could not set ICU grapheme text", status);
   }
 
   std::size_t result = 0;
-  ubrk_first(iterator_);
-  while (ubrk_next(iterator_) != UBRK_DONE) {
+  ubrk_first(iterator_.get());
+  while (ubrk_next(iterator_.get()) != UBRK_DONE) {
     ++result;
   }
 
   static constexpr UChar kEmptyText = 0;
   status = U_ZERO_ERROR;
-  ubrk_setText(iterator_, &kEmptyText, 0, &status);
+  ubrk_setText(iterator_.get(), &kEmptyText, 0, &status);
   if (U_FAILURE(status)) {
     throw icuError("could not release ICU grapheme text", status);
   }

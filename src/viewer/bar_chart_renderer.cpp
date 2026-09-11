@@ -12,7 +12,7 @@
 #include <QPainterPath>
 #include <QPalette>
 
-#include "i18n.h"
+#include <fcitx-utils/i18n.h>
 
 namespace inputcounter {
 
@@ -137,7 +137,7 @@ BarChartGeometry paint(QPainter &painter, const QRect &bounds,
   const auto maximum = maximumEntry == data.end() ? 0 : maximumEntry->second;
   if (data.empty() || maximum == 0) {
     painter.setPen(palette.color(QPalette::PlaceholderText));
-    painter.drawText(bounds, Qt::AlignCenter, IC_("No data recorded yet"));
+    painter.drawText(bounds, Qt::AlignCenter, _("No data recorded yet"));
     return {};
   }
 

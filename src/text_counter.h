@@ -11,8 +11,9 @@
 #include <string_view>
 
 #include <fcitx-utils/key.h>
+#include <fcitx-utils/misc.h>
 
-struct UBreakIterator;
+#include <unicode/ubrk.h>
 
 namespace inputcounter {
 
@@ -26,9 +27,6 @@ public:
   ///
   /// Throws `std::runtime_error` when ICU cannot create the iterator.
   TextCounter();
-
-  /// Releases the owned ICU break iterator.
-  ~TextCounter();
 
   TextCounter(const TextCounter &) = delete;
   TextCounter &operator=(const TextCounter &) = delete;
@@ -46,7 +44,7 @@ public:
   std::size_t count(std::string_view text);
 
 private:
-  UBreakIterator *iterator_;
+  fcitx::UniqueCPtr<UBreakIterator, ubrk_close> iterator_;
 };
 
 } // namespace inputcounter

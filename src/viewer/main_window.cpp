@@ -22,7 +22,7 @@
 #include "bar_chart_widget.h"
 #include "chart_range.h"
 #include "custom_range_dialog.h"
-#include "i18n.h"
+#include <fcitx-utils/i18n.h>
 #include "main_window_ui.h"
 #include "statistics_client.h"
 #include "statistics_snapshot.h"
@@ -52,7 +52,7 @@ namespace inputcounter
   MainWindow::MainWindow(QWidget *parent)
       : QMainWindow(parent), client_(std::make_unique<StatisticsClient>())
   {
-    setWindowTitle(IC_("Input Counter"));
+    setWindowTitle(_("Input Counter"));
 
     ui_ = std::make_unique<MainWindowUi>(buildUi(*this));
     clearDisplay();
@@ -153,7 +153,7 @@ namespace inputcounter
           available_ = true;
           ui_->unavailableLabel.hide();
           ui_->connectionLabel.setText(
-              connectionText("#2e7d32", IC_("Connected")));
+              connectionText("#2e7d32", _("Connected")));
           hasSnapshot_ = true;
           finishOperation();
         }); });
@@ -189,8 +189,8 @@ namespace inputcounter
       return;
     }
     const auto choice = QMessageBox::question(
-        this, IC_("Clear all statistics"),
-        IC_("This permanently deletes all recorded input statistics. "
+        this, _("Clear all statistics"),
+        _("This permanently deletes all recorded input statistics. "
             "Continue?"));
     if (choice != QMessageBox::Yes)
     {
@@ -203,8 +203,8 @@ namespace inputcounter
                    {
     if (const auto *error = std::get_if<QString>(&result)) {
       QMessageBox::warning(
-          this, IC_("Clear all statistics"),
-          QString(IC_("Failed to clear statistics: %1")).arg(*error));
+          this, _("Clear all statistics"),
+          QString(_("Failed to clear statistics: %1")).arg(*error));
       setUnavailable();
       finishOperation();
       return;
@@ -226,11 +226,11 @@ namespace inputcounter
     available_ = false;
     ui_->unavailableLabel.setText(
         error.isEmpty()
-            ? QString(IC_("Data unavailable"))
-            : QString(IC_("Failed to read statistics: %1")).arg(error));
+            ? QString(_("Data unavailable"))
+            : QString(_("Failed to read statistics: %1")).arg(error));
     ui_->unavailableLabel.show();
     ui_->connectionLabel.setText(
-        connectionText("#c62828", IC_("Data unavailable")));
+        connectionText("#c62828", _("Data unavailable")));
     if (!hasSnapshot_)
     {
       clearDisplay();

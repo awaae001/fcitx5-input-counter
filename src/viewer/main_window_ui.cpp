@@ -22,7 +22,7 @@
 #include <QWidget>
 
 #include "bar_chart_widget.h"
-#include "i18n.h"
+#include <fcitx-utils/i18n.h>
 
 namespace inputcounter
 {
@@ -76,10 +76,10 @@ namespace inputcounter
       QLabel *last24Hours = nullptr;
       QLabel *last7Days = nullptr;
       const std::array rows{
-          std::pair{IC_("Total"), &total},
-          std::pair{IC_("Today"), &today},
-          std::pair{IC_("Last 24 hours"), &last24Hours},
-          std::pair{IC_("Last 7 days"), &last7Days},
+          std::pair{_("Total"), &total},
+          std::pair{_("Today"), &today},
+          std::pair{_("Last 24 hours"), &last24Hours},
+          std::pair{_("Last 7 days"), &last7Days},
       };
 
       bool first = true;
@@ -114,13 +114,13 @@ namespace inputcounter
       tabs->setDocumentMode(true);
       tabs->setDrawBase(false);
       tabs->setExpanding(false);
-      tabs->addTab(IC_("Last 24 hours"));
-      tabs->addTab(IC_("Last 7 days"));
-      tabs->addTab(IC_("Last 30 days"));
-      tabs->addTab(IC_("Last 12 months"));
-      tabs->addTab(IC_("All time"));
+      tabs->addTab(_("Last 24 hours"));
+      tabs->addTab(_("Last 7 days"));
+      tabs->addTab(_("Last 30 days"));
+      tabs->addTab(_("Last 12 months"));
+      tabs->addTab(_("All time"));
 
-      auto *customButton = new QPushButton(IC_("Custom"), widget);
+      auto *customButton = new QPushButton(_("Custom"), widget);
       customButton->setFlat(true);
       customButton->setCheckable(true);
       header->addWidget(tabs);
@@ -169,17 +169,17 @@ namespace inputcounter
     auto charts = buildCharts(central);
 
     auto *refreshButton = new QPushButton(
-        window.style()->standardIcon(QStyle::SP_BrowserReload), IC_("Refresh"),
+        window.style()->standardIcon(QStyle::SP_BrowserReload), _("Refresh"),
         central);
     const QKeySequence refreshKeys(QKeySequence::Refresh);
     refreshButton->setToolTip(refreshKeys.toString());
     auto *refreshShortcut = new QShortcut(refreshKeys, &window);
 
     auto *clearButton = new QPushButton(
-        window.style()->standardIcon(QStyle::SP_TrashIcon), IC_("Clear all"),
+        window.style()->standardIcon(QStyle::SP_TrashIcon), _("Clear all"),
         central);
 
-    auto *unavailableLabel = new QLabel(IC_("Data unavailable"), central);
+    auto *unavailableLabel = new QLabel(_("Data unavailable"), central);
     unavailableLabel->setForegroundRole(QPalette::PlaceholderText);
     unavailableLabel->setTextFormat(Qt::PlainText);
     unavailableLabel->setWordWrap(true);

@@ -44,8 +44,7 @@ namespace inputcounter
     }
 
     database_.flush();
-    const auto rows =
-        database_.hourlyBetween(ranges.front().start, ranges.back().end);
+    const auto rows = database_.hourlyBetween(ranges.front().start, ranges.back().end);
     std::vector<std::uint64_t> result;
     result.reserve(ranges.size());
 

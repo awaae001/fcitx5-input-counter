@@ -10,7 +10,6 @@
 #include <utility>
 #include <vector>
 
-#include <fcitx-utils/cutf8.h>
 #include <fcitx-utils/dbus/bus.h>
 #include <fcitx-utils/event.h>
 #include <fcitx-utils/i18n.h>
@@ -213,7 +212,7 @@ namespace inputcounter
   void InputCounterAddon::count(std::string_view text)
   {
     const auto codePoints =
-        text.empty() ? 0 : fcitx_utf8_strnlen_validated(text.data(), text.size());
+        text.empty() ? 0 : fcitx::utf8::lengthValidated(text);
     if (codePoints == fcitx::utf8::INVALID_LENGTH)
     {
       FCITX_WARN() << "inputcounter ignored invalid text";
@@ -224,15 +223,9 @@ namespace inputcounter
       return;
     }
 
-    const auto chars = static_cast<std::uint64_t>(textCounter_.count(text));
-    recordChars(chars);
-  }
-
-  void InputCounterAddon::recordChars(std::uint64_t chars)
-  {
-    if (chars == 0)
-      return;
-    database_->recordChars(static_cast<std::int64_t>(std::time(nullptr)), chars);
+    database_->recordChars(
+        static_cast<std::int64_t>(std::time(nullptr)),
+        static_cast<std::uint64_t>(textCounter_.count(text)));
   }
 
   void InputCounterAddon::refreshSteamGames()
@@ -279,13 +272,8 @@ namespace inputcounter
     }
     const auto displayName = name.empty() ? std::string("Steam App ") + id
                                           : name;
-    std::string body = _("Detected that %1 (AppID: %2) has started.");
-    const auto first = body.find("%1");
-    if (first != std::string::npos)
-      body.replace(first, 2, displayName);
-    const auto second = body.find("%2");
-    if (second != std::string::npos)
-      body.replace(second, 2, id);
+    const auto body = _("Detected that {0} (AppID: {1}) has started.",
+                        displayName, id);
     notifications_->call<fcitx::INotifications::sendNotification>(
         "Input Counter", 0, "fcitx5-input-counter", _("Game detected"),
         body, std::vector<std::string>{}, 5000, [](const std::string &) {},
@@ -306,13 +294,8 @@ namespace inputcounter
     pendingGamePrompts_.insert(id);
     const auto displayName = name.empty() ? std::string("Steam App ") + id
                                           : name;
-    std::string body = _("Steam detected %1 (AppID: %2). Is it a game?");
-    const auto first = body.find("%1");
-    if (first != std::string::npos)
-      body.replace(first, 2, displayName);
-    const auto second = body.find("%2");
-    if (second != std::string::npos)
-      body.replace(second, 2, id);
+    const auto body = _("Steam detected {0} (AppID: {1}). Is it a game?",
+                        displayName, id);
     const std::vector<std::string> actions{
         "yes", _("Yes, this is a game"), "no", _("No, ignore")};
     const auto alive = notificationCallbacksAlive_;

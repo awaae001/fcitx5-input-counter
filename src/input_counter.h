@@ -46,7 +46,6 @@ public:
 
 private:
   void count(std::string_view text);
-  void recordChars(std::uint64_t chars);
   void refreshSteamGames();
   void notifySteamGameStarted(const std::string &id, const std::string &name);
   void promptForSteamGame(const std::string &id, const std::string &name);

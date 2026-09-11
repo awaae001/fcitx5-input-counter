@@ -9,7 +9,8 @@ project(
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_AUTOMOC ON)
 
-find_package(Fcitx5Core 5.1.2 REQUIRED)
+find_package(Fcitx5Core 5.1.13 REQUIRED)
+find_package(Fcitx5Utils 5.1.13 REQUIRED)
 find_package(Fcitx5ModuleDBus REQUIRED)
 find_package(Fcitx5ModuleNotifications REQUIRED)
 find_package(Gettext REQUIRED)
@@ -40,6 +41,7 @@ add_library(inputcounter MODULE
 target_include_directories(inputcounter PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(inputcounter PRIVATE
     Fcitx5::Core
+    Fcitx5::Utils
     Fcitx5::Module::DBus
     Fcitx5::Module::Notifications
     ICU::i18n
@@ -67,10 +69,12 @@ add_executable(fcitx5-input-counter-viewer
 target_include_directories(fcitx5-input-counter-viewer PRIVATE
     "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(fcitx5-input-counter-viewer PRIVATE
+    Fcitx5::Utils
     Qt6::DBus
     Qt6::Widgets
 )
 target_compile_definitions(fcitx5-input-counter-viewer PRIVATE
+    FCITX_GETTEXT_DOMAIN="fcitx5-input-counter"
     INPUT_COUNTER_LOCALEDIR="${FCITX_INSTALL_LOCALEDIR}"
 )
 
@@ -100,6 +104,7 @@ include(CTest)
 if(BUILD_TESTING)
     add_executable(game-filter-test tests/game_filter_test.cpp src/steam_games.cpp)
     target_include_directories(game-filter-test PRIVATE src)
+    target_link_libraries(game-filter-test PRIVATE Fcitx5::Utils)
     add_test(NAME game-filter-test COMMAND game-filter-test)
 
     add_executable(text-counter-test
@@ -122,7 +127,10 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_BINARY_DIR}"
         src
     )
-    target_link_libraries(database-manager-test PRIVATE SQLite3::SQLite3)
+    target_link_libraries(database-manager-test PRIVATE
+        Fcitx5::Utils
+        SQLite3::SQLite3
+    )
     add_test(NAME database-manager-test COMMAND database-manager-test)
 
     add_executable(statistics-backend-test
@@ -134,7 +142,10 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_BINARY_DIR}"
         src
     )
-    target_link_libraries(statistics-backend-test PRIVATE SQLite3::SQLite3)
+    target_link_libraries(statistics-backend-test PRIVATE
+        Fcitx5::Utils
+        SQLite3::SQLite3
+    )
     add_test(NAME statistics-backend-test COMMAND statistics-backend-test)
 
     add_executable(statistics-snapshot-test
