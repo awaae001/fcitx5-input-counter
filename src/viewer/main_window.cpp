@@ -191,7 +191,7 @@ namespace inputcounter
     const auto choice = QMessageBox::question(
         this, _("Clear all statistics"),
         _("This permanently deletes all recorded input statistics. "
-            "Continue?"));
+          "Continue?"));
     if (choice != QMessageBox::Yes)
     {
       return;

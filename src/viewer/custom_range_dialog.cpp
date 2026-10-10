@@ -24,119 +24,135 @@
 
 #include <fcitx-utils/i18n.h>
 
-namespace inputcounter {
+namespace inputcounter
+{
 
-std::optional<ChartRange> chooseCustomRange(QWidget &parent,
-                                            const ChartRange *current) {
-  QDialog dialog(&parent);
-  dialog.setWindowTitle(_("Custom time range"));
-  dialog.setModal(true);
-  dialog.setMinimumWidth(420);
+  std::optional<ChartRange> chooseCustomRange(QWidget &parent,
+                                              const ChartRange *current)
+  {
+    QDialog dialog(&parent);
+    dialog.setWindowTitle(_("Custom time range"));
+    dialog.setModal(true);
+    dialog.setMinimumWidth(420);
 
-  auto *layout = new QVBoxLayout(&dialog);
-  auto *form = new QFormLayout;
-  auto *start = new QDateTimeEdit(&dialog);
-  auto *end = new QDateTimeEdit(&dialog);
-  for (auto *edit : {start, end}) {
-    edit->setCalendarPopup(true);
-    edit->setDisplayFormat(QStringLiteral("yyyy-MM-dd HH:mm"));
-  }
-
-  auto *scale = new QComboBox(&dialog);
-  scale->addItem(_("1 hour"), static_cast<int>(ChartScale::OneHour));
-  scale->addItem(_("6 hours"), static_cast<int>(ChartScale::SixHours));
-  scale->addItem(_("12 hours"), static_cast<int>(ChartScale::TwelveHours));
-  scale->addItem(_("1 day"), static_cast<int>(ChartScale::OneDay));
-  scale->addItem(_("1 week"), static_cast<int>(ChartScale::OneWeek));
-  scale->addItem(_("1 month"), static_cast<int>(ChartScale::OneMonth));
-  if (current != nullptr) {
-    start->setDateTime(current->start());
-    end->setDateTime(current->end());
-    scale->setCurrentIndex(
-        scale->findData(static_cast<int>(current->scale())));
-  } else {
-    const auto now = QDateTime::currentDateTime();
-    auto rangeEnd = now;
-    rangeEnd.setTime(QTime(now.time().hour(), 0));
-    if (rangeEnd < now) {
-      rangeEnd = rangeEnd.addSecs(60 * 60);
+    auto *layout = new QVBoxLayout(&dialog);
+    auto *form = new QFormLayout;
+    auto *start = new QDateTimeEdit(&dialog);
+    auto *end = new QDateTimeEdit(&dialog);
+    for (auto *edit : {start, end})
+    {
+      edit->setCalendarPopup(true);
+      edit->setDisplayFormat(QStringLiteral("yyyy-MM-dd HH:mm"));
     }
-    start->setDateTime(rangeEnd.addDays(-7));
-    end->setDateTime(rangeEnd);
-    scale->setCurrentIndex(
-        scale->findData(static_cast<int>(ChartScale::SixHours)));
-  }
-  form->addRow(_("Start time"), start);
-  form->addRow(_("End time"), end);
-  form->addRow(_("Time scale"), scale);
 
-  auto *bucketRow = new QWidget(&dialog);
-  auto *bucketLayout = new QHBoxLayout(bucketRow);
-  bucketLayout->setContentsMargins(0, 0, 0, 0);
-  bucketLayout->setSpacing(4);
-  auto *bucketCount = new QLabel(bucketRow);
-  bucketLayout->addWidget(bucketCount);
-
-  auto *limitInfo = new QToolButton(bucketRow);
-  limitInfo->setIcon(
-      dialog.style()->standardIcon(QStyle::SP_MessageBoxInformation));
-  limitInfo->setAutoRaise(true);
-  limitInfo->setFocusPolicy(Qt::NoFocus);
-  const auto limitExplanation = QString(_("At most %1 bars can be queried at once. This limit is intended to prevent lag caused by excessive data during database queries, D-Bus transfers, and chart rendering.")).arg(ChartRange::kMaximumBuckets);
-  limitInfo->setToolTip(limitExplanation);
-  limitInfo->setAccessibleName(_("Why is there a limit?"));
-  bucketLayout->addWidget(limitInfo);
-  bucketLayout->addStretch();
-
-  form->addRow(_("Bars"), bucketRow);
-  layout->addLayout(form);
-
-  auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok |
-                                           QDialogButtonBox::Cancel,
-                                       &dialog);
-  auto *applyButton = buttons->button(QDialogButtonBox::Ok);
-  applyButton->setText(_("Apply"));
-  layout->addWidget(buttons);
-
-  const auto updateBucketCount = [&] {
-    const auto selectedScale =
-        static_cast<ChartScale>(scale->currentData().toInt());
-    auto result = ChartRange::create(start->dateTime(), end->dateTime(),
-                                     selectedScale);
-    if (const auto *rangeError = std::get_if<ChartRangeError>(&result)) {
-      if (*rangeError == ChartRangeError::TooManyBuckets) {
-        bucketCount->setText(
-            QString(_("%1 / %2 (over limit)"))
-                .arg(ChartRange::countBuckets(start->dateTime(),
-                                              end->dateTime(), selectedScale))
-                .arg(ChartRange::kMaximumBuckets));
-      } else {
-        bucketCount->setText(_("Invalid range"));
+    auto *scale = new QComboBox(&dialog);
+    scale->addItem(_("1 hour"), static_cast<int>(ChartScale::OneHour));
+    scale->addItem(_("6 hours"), static_cast<int>(ChartScale::SixHours));
+    scale->addItem(_("12 hours"), static_cast<int>(ChartScale::TwelveHours));
+    scale->addItem(_("1 day"), static_cast<int>(ChartScale::OneDay));
+    scale->addItem(_("1 week"), static_cast<int>(ChartScale::OneWeek));
+    scale->addItem(_("1 month"), static_cast<int>(ChartScale::OneMonth));
+    if (current != nullptr)
+    {
+      start->setDateTime(current->start());
+      end->setDateTime(current->end());
+      scale->setCurrentIndex(
+          scale->findData(static_cast<int>(current->scale())));
+    }
+    else
+    {
+      const auto now = QDateTime::currentDateTime();
+      auto rangeEnd = now;
+      rangeEnd.setTime(QTime(now.time().hour(), 0));
+      if (rangeEnd < now)
+      {
+        rangeEnd = rangeEnd.addSecs(60 * 60);
       }
-      bucketCount->setStyleSheet(
-          QStringLiteral("color: #da4453; font-weight: 600;"));
-      applyButton->setEnabled(false);
-      return;
+      start->setDateTime(rangeEnd.addDays(-7));
+      end->setDateTime(rangeEnd);
+      scale->setCurrentIndex(
+          scale->findData(static_cast<int>(ChartScale::SixHours)));
     }
+    form->addRow(_("Start time"), start);
+    form->addRow(_("End time"), end);
+    form->addRow(_("Time scale"), scale);
 
-    bucketCount->setText(QStringLiteral("%1 / %2")
-                             .arg(std::get<ChartRange>(result).buckets().size())
-                             .arg(ChartRange::kMaximumBuckets));
-    bucketCount->setStyleSheet(QString());
-    applyButton->setEnabled(true);
-  };
+    auto *bucketRow = new QWidget(&dialog);
+    auto *bucketLayout = new QHBoxLayout(bucketRow);
+    bucketLayout->setContentsMargins(0, 0, 0, 0);
+    bucketLayout->setSpacing(4);
+    auto *bucketCount = new QLabel(bucketRow);
+    bucketLayout->addWidget(bucketCount);
 
-  QObject::connect(start, &QDateTimeEdit::dateTimeChanged, &dialog,
-                   [&](const QDateTime &) { updateBucketCount(); });
-  QObject::connect(end, &QDateTimeEdit::dateTimeChanged, &dialog,
-                   [&](const QDateTime &) { updateBucketCount(); });
-  QObject::connect(scale, &QComboBox::currentIndexChanged, &dialog,
-                   [&](int) { updateBucketCount(); });
+    auto *limitInfo = new QToolButton(bucketRow);
+    limitInfo->setIcon(
+        dialog.style()->standardIcon(QStyle::SP_MessageBoxInformation));
+    limitInfo->setAutoRaise(true);
+    limitInfo->setFocusPolicy(Qt::NoFocus);
+    const auto limitExplanation = QString(_("At most %1 bars can be queried at once. This limit is intended to prevent lag caused by excessive data during database queries, D-Bus transfers, and chart rendering.")).arg(ChartRange::kMaximumBuckets);
+    limitInfo->setToolTip(limitExplanation);
+    limitInfo->setAccessibleName(_("Why is there a limit?"));
+    bucketLayout->addWidget(limitInfo);
+    bucketLayout->addStretch();
 
-  std::optional<ChartRange> selected;
-  QObject::connect(buttons, &QDialogButtonBox::rejected, &dialog,
-                   &QDialog::reject);
-  QObject::connect(buttons, &QDialogButtonBox::accepted, &dialog, [&] {
+    form->addRow(_("Bars"), bucketRow);
+    layout->addLayout(form);
+
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok |
+                                             QDialogButtonBox::Cancel,
+                                         &dialog);
+    auto *applyButton = buttons->button(QDialogButtonBox::Ok);
+    applyButton->setText(_("Apply"));
+    layout->addWidget(buttons);
+
+    const auto updateBucketCount = [&]
+    {
+      const auto selectedScale =
+          static_cast<ChartScale>(scale->currentData().toInt());
+      auto result = ChartRange::create(start->dateTime(), end->dateTime(),
+                                       selectedScale);
+      if (const auto *rangeError = std::get_if<ChartRangeError>(&result))
+      {
+        if (*rangeError == ChartRangeError::TooManyBuckets)
+        {
+          bucketCount->setText(
+              QString(_("%1 / %2 (over limit)"))
+                  .arg(ChartRange::countBuckets(start->dateTime(),
+                                                end->dateTime(), selectedScale))
+                  .arg(ChartRange::kMaximumBuckets));
+        }
+        else
+        {
+          bucketCount->setText(_("Invalid range"));
+        }
+        bucketCount->setStyleSheet(
+            QStringLiteral("color: #da4453; font-weight: 600;"));
+        applyButton->setEnabled(false);
+        return;
+      }
+
+      bucketCount->setText(QStringLiteral("%1 / %2")
+                               .arg(std::get<ChartRange>(result).buckets().size())
+                               .arg(ChartRange::kMaximumBuckets));
+      bucketCount->setStyleSheet(QString());
+      applyButton->setEnabled(true);
+    };
+
+    QObject::connect(start, &QDateTimeEdit::dateTimeChanged, &dialog,
+                     [&](const QDateTime &)
+                     { updateBucketCount(); });
+    QObject::connect(end, &QDateTimeEdit::dateTimeChanged, &dialog,
+                     [&](const QDateTime &)
+                     { updateBucketCount(); });
+    QObject::connect(scale, &QComboBox::currentIndexChanged, &dialog,
+                     [&](int)
+                     { updateBucketCount(); });
+
+    std::optional<ChartRange> selected;
+    QObject::connect(buttons, &QDialogButtonBox::rejected, &dialog,
+                     &QDialog::reject);
+    QObject::connect(buttons, &QDialogButtonBox::accepted, &dialog, [&]
+                     {
     const auto selectedScale =
         static_cast<ChartScale>(scale->currentData().toInt());
     auto result = ChartRange::create(start->dateTime(), end->dateTime(),
@@ -147,12 +163,11 @@ std::optional<ChartRange> chooseCustomRange(QWidget &parent,
     }
 
     selected.emplace(std::move(std::get<ChartRange>(result)));
-    dialog.accept();
-  });
-  updateBucketCount();
+    dialog.accept(); });
+    updateBucketCount();
 
-  dialog.exec();
-  return selected;
-}
+    dialog.exec();
+    return selected;
+  }
 
 } // namespace inputcounter

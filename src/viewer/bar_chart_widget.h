@@ -3,7 +3,7 @@
 #ifndef FCITX5_INPUT_COUNTER_VIEWER_BAR_CHART_WIDGET_H
 #define FCITX5_INPUT_COUNTER_VIEWER_BAR_CHART_WIDGET_H
 
-//! Minimal bar chart widget used by the statistics viewer.
+//! Bar chart widget used by the statistics viewer.
 
 #include <cstdint>
 #include <utility>

@@ -56,7 +56,6 @@ target_compile_definitions(inputcounter PRIVATE
 set_target_properties(inputcounter PROPERTIES PREFIX "")
 
 add_executable(fcitx5-input-counter-viewer
-    src/viewer/bar_chart_renderer.cpp
     src/viewer/chart_range.cpp
     src/viewer/custom_range_dialog.cpp
     src/viewer/bar_chart_widget.cpp
