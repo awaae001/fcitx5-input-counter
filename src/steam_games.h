@@ -14,8 +14,6 @@ std::set<std::string> steamIdsFromEnvironment(std::string_view environment);
 using RunningSteamGames = std::map<std::string, std::set<std::string>>;
 RunningSteamGames
 runningSteamGames(const std::filesystem::path &proc = "/proc");
-bool matchesSteamGames(const std::set<std::string> &running,
-                       std::string_view configuredIds);
 std::string steamGameName(const std::string &id);
 std::set<std::string> splitGameList(std::string_view list);
 bool shouldExcludeGameInput(std::string_view program,

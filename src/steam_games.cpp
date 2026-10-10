@@ -119,19 +119,6 @@ namespace inputcounter
     return result;
   }
 
-  bool matchesSteamGames(const std::set<std::string> &running,
-                         std::string_view configuredIds)
-  {
-    if (fcitx::stringutils::trimView(configuredIds).empty())
-      return !running.empty();
-    for (const auto &id : splitGameList(configuredIds))
-    {
-      if (running.count(id))
-        return true;
-    }
-    return false;
-  }
-
   std::set<std::string> splitGameList(std::string_view value)
   {
     std::string list(value);

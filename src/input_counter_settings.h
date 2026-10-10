@@ -36,15 +36,6 @@ FCITX_CONFIGURATION(
         {},
         {_("Do not count raw keys or input method commits from detected game "
            "input contexts.")}};
-    TooltipOption<std::string> steamGameIds{
-        this,
-        "SteamGameIds",
-        _("Steam game AppIDs"),
-        "",
-        {},
-        {},
-        {_("Separate AppIDs with commas or whitespace; leave empty to select "
-           "all games.")}};
     TooltipOption<bool> steamUnknownProgramFallback{
         this,
         "SteamUnknownProgramFallback",
@@ -113,8 +104,7 @@ FCITX_CONFIGURATION(
     if (!*steamGameExclusion)
       return programs;
     for (const auto &id : knownSteamGames_.subItems()) {
-      if (!running.count(id) || !steamGameConfirmed(id) || steamGameIgnored(id) ||
-          !matchesSteamGames({id}, *steamGameIds))
+      if (!running.count(id) || !steamGameConfirmed(id) || steamGameIgnored(id))
         continue;
       if (const auto value = knownSteamGames_.get(id + "/Programs")) {
         const auto entries = splitGameList(value->value());

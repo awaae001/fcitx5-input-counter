@@ -29,12 +29,6 @@ int main() {
               std::string_view(fallback, sizeof(fallback) - 1)) ==
               std::set<std::string>{"413150"},
           "GameID fallback failed");
-  require(matchesSteamGames({"413150"}, ""),
-          "empty list should match all games");
-  require(matchesSteamGames({"413150"}, "10, 413150"),
-          "configured game missed");
-  require(!matchesSteamGames({"413150"}, "41315"), "partial AppID matched");
-  require(!matchesSteamGames({}, ""), "no game should not filter");
 
   const std::set<std::string> programs{"StardewModdingAPI"};
   require(shouldExcludeGameInput("StardewModdingAPI", programs, true, true,

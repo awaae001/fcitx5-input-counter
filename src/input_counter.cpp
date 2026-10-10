@@ -250,7 +250,7 @@ namespace inputcounter
       }
     }
     detectedSteamGames_ = detected;
-    const bool active = matchesSteamGames(running, *settings_.steamGameIds);
+    const bool active = !running.empty();
     if (active != steamGameRunning_)
       steamGameRunning_ = active;
     gamePrograms_ = settings_.steamGamePrograms(running);
