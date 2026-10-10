@@ -46,7 +46,7 @@ target_link_libraries(inputcounter PRIVATE
     Fcitx5::Module::Notifications
     ICU::i18n
     ICU::uc
-    SQLite3::SQLite3
+    SQLite::SQLite3
 )
 target_compile_definitions(inputcounter PRIVATE
     FCITX_GETTEXT_DOMAIN="fcitx5-input-counter"
@@ -128,7 +128,7 @@ if(BUILD_TESTING)
     )
     target_link_libraries(database-manager-test PRIVATE
         Fcitx5::Utils
-        SQLite3::SQLite3
+        SQLite::SQLite3
     )
     add_test(NAME database-manager-test COMMAND database-manager-test)
 
@@ -143,7 +143,7 @@ if(BUILD_TESTING)
     )
     target_link_libraries(statistics-backend-test PRIVATE
         Fcitx5::Utils
-        SQLite3::SQLite3
+        SQLite::SQLite3
     )
     add_test(NAME statistics-backend-test COMMAND statistics-backend-test)
 

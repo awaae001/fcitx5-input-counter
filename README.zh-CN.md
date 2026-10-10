@@ -8,8 +8,6 @@
 
 自定义图表支持指定开始时间、结束时间，以及从小时到月的统计粒度。窗口也支持清空全部统计记录。
 
-## 统计范围
-
 - 统计 Fcitx 输入法发出的 `InputContextCommitString` 和 `InputContextCommitStringWithCursor` 事件。
 - 统计 Fcitx 直接传递给应用的可打印按键，包括普通英文直输。
 - 对每个提交事件的文本，按 UAX #29 定义的 Unicode 扩展字素簇计数，包括空白字符和标点。例如，`👨‍👩‍👧‍👦` 计为一个字素簇。
@@ -39,11 +37,10 @@ cmake -S . -B build -G Ninja \
 cmake --build build
 ```
 
-构建依赖：Fcitx5Core 和 Fcitx5Utils（>= 5.1.13）、ICU、SQLite3、Qt6 DBus 和
-Widgets，以及 Gettext。
+构建依赖：Fcitx5Core 和 Fcitx5Utils（>= 5.1.13）、ICU、SQLite3、Qt6 DBus 和 Widgets，以及 Gettext。
 
 > [!WARNING]
-> 需要 Fcitx5 **5.1.13 或更高版本**。自带旧版 Fcitx5 的发行版（例如 Ubuntu 24.04、Debian stable）无法编译本项目，请使用提供新版 Fcitx5 的发行版（Arch、Fedora 等）或先升级 Fcitx5。
+> 需要 Fcitx5 **5.1.13 或更高版本**。自带旧版 Fcitx5 的发行版（例如 Ubuntu 24.04 LTS、Debian 13）无法编译本项目，请使用提供新版 Fcitx5 的发行版（Ubuntu 26.04+、Arch、Fedora 等）或先升级 Fcitx5。
 
 ## 安装
 

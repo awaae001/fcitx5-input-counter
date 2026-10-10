@@ -5,53 +5,42 @@ on:
     branches: [main]
 
 jobs:
-  check:
-    name: Check (build + tests)
-    runs-on: ubuntu-latest
-    container: archlinux:latest
+  build:
+    name: Check & Build Linux
+    runs-on: ubuntu-26.04
     steps:
       - name: Install dependencies
         run: |
-          pacman -Syu --noconfirm --needed \
-            base-devel cmake git \
-            fcitx5 qt6-base sqlite icu gettext
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake pkg-config \
+            libfcitx5core-dev libfcitx5utils-dev fcitx5-modules-dev \
+            qt6-base-dev libsqlite3-dev libicu-dev gettext
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON
+      - name: Configure (Debug)
+        run: cmake -B build-check -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTING=ON
 
-      - name: Build
-        run: cmake --build build -j "$(nproc)"
+      - name: Build (Debug)
+        run: cmake --build build-check -j "$(nproc)"
 
       - name: Run tests
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build-check --output-on-failure
 
-  build-linux:
-    name: Build Linux
-    needs: check
-    runs-on: ubuntu-latest
-    container: archlinux:latest
-    steps:
-      - name: Install dependencies
-        run: |
-          pacman -Syu --noconfirm --needed \
-            base-devel cmake git \
-            fcitx5 qt6-base sqlite icu gettext
-
-      - uses: actions/checkout@v4
-
-      - name: Configure
+      - name: Configure (Release)
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build
+      - name: Build (Release)
         run: cmake --build build -j "$(nproc)"
 
       - name: Install to staging
-        run: cmake --install build --prefix "$PWD/staging"
+        # fcitx5 的 install DESTINATION 是绝对路径，--prefix 对其无效，
+        # 必须用 DESTDIR 才能把文件收进 staging/
+        run: DESTDIR="$GITHUB_WORKSPACE/staging" cmake --install build
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: fcitx5-input-counter-linux
           path: staging/

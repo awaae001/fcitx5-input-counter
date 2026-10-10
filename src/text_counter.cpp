@@ -8,6 +8,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 #include <fcitx-utils/keysym.h>
 
@@ -27,6 +28,15 @@ std::runtime_error icuError(const char *operation, UErrorCode status) {
   return std::runtime_error(std::string(operation) + ": " +
                             u_errorName(status));
 }
+
+/// Minimal scope guard. Can be dropped in favor of fcitx::ScopeExit once
+/// fcitx5 5.1.22 or newer can be required.
+template <typename Callback> struct ScopeExit {
+  explicit ScopeExit(Callback callback) : callback(std::move(callback)) {}
+  ~ScopeExit() { callback(); }
+  Callback callback;
+};
+template <typename Callback> ScopeExit(Callback) -> ScopeExit<Callback>;
 
 } // namespace
 
@@ -63,7 +73,7 @@ std::optional<std::string> TextCounter::textForKey(const fcitx::Key &key) {
 std::size_t TextCounter::count(std::string_view text) {
   UErrorCode status = U_ZERO_ERROR;
   UText utf8Text = UTEXT_INITIALIZER;
-  const fcitx::ScopeExit closeText([&utf8Text] { utext_close(&utf8Text); });
+  const ScopeExit closeText([&utf8Text] { utext_close(&utf8Text); });
   utext_openUTF8(&utf8Text, text.data(), static_cast<std::int64_t>(text.size()),
                  &status);
   if (U_FAILURE(status)) {

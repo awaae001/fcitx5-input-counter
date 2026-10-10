@@ -8,8 +8,6 @@ The addon adds an `Input Counter` button to the Fcitx status area. Clicking it o
 
 A custom chart accepts a start time, end time, and scale from one hour through one month. The viewer can also clear all recorded statistics.
 
-## Scope
-
 - Counts `InputContextCommitString` and `InputContextCommitStringWithCursor` events emitted by Fcitx input methods.
 - Counts printable keys that Fcitx forwards directly to applications, including ordinary English input.
 - Counts Unicode extended grapheme clusters as defined by UAX #29 within each committed event payload, including whitespace and punctuation. For example `👨‍👩‍👧‍👦` counts as one grapheme.
@@ -17,20 +15,13 @@ A custom chart accepts a start time, end time, and scale from one hour through o
 
 ## Game input exclusion
 
-Game input exclusion is enabled by default. Printable raw keys and input-method
-commits from a recognized game input context are not counted. It never consumes
-or modifies application key events.
+Game input exclusion is enabled by default. Printable raw keys and input-methodcommits from a recognized game input context are not counted. It never consumes or modifies application key events.
 
-- Every process carrying a game's Steam AppID contributes its executable names;
-  these are matched exactly against Fcitx's input-context program name. Multiple
-  processes and windows of one game are therefore supported.
-- Switching to a recognized browser, chat client, or other non-game application
-  restores normal counting even while the game remains open in the background.
-- If the input-context program name is empty, a matching running Steam game
-  excludes that context as a fallback. This fallback can be disabled.
+- Every process carrying a game's Steam AppID contributes its executable names; these are matched exactly against Fcitx's input-context program name. Multiple processes and windows of one game are therefore supported.
+- Switching to a recognized browser, chat client, or other non-game application restores normal counting even while the game remains open in the background.
+- If the input-context program name is empty, a matching running Steam game excludes that context as a fallback. This fallback can be disabled.
 
-Settings are available in the Fcitx addon configuration, or in
-`~/.config/fcitx5/conf/inputcounter.conf` (`$XDG_CONFIG_HOME` is respected):
+Settings are available in the Fcitx addon configuration, or in `~/.config/fcitx5/conf/inputcounter.conf` (`$XDG_CONFIG_HOME` is respected):
 
 To identify a program, focus its input field and inspect `focus:1` in:
 
@@ -47,21 +38,16 @@ cmake -S . -B build -G Ninja \
 cmake --build build
 ```
 
-Build dependencies: Fcitx5Core and Fcitx5Utils (>= 5.1.13), ICU, SQLite3,
-Qt6 DBus and Widgets, Gettext.
+Build dependencies: Fcitx5Core and Fcitx5Utils (>= 5.1.13), ICU, SQLite3, Qt6 DBus and Widgets, Gettext.
 
 > [!WARNING]
-> Fcitx5 **5.1.13 or newer** is required. Distributions shipping older Fcitx5
-> (e.g. Ubuntu 24.04, Debian stable) cannot build this project; use a distro
-> with a current Fcitx5 (Arch, Fedora) or upgrade Fcitx5 first.
+> Fcitx5 **5.1.13 or newer** is required. Distributions shipping older Fcitx5 (e.g. Ubuntu 24.04 LTS, Debian 13) cannot build this project; use a distro with a current Fcitx5 (Ubuntu 26.04+, Arch, Fedora) or upgrade Fcitx5 first.
 
 ## Install
 
 ### Arch Linux (AUR)
 
-Install
-[`fcitx5-input-counter`](https://aur.archlinux.org/packages/fcitx5-input-counter)
-with an AUR helper, for example:
+Install [`fcitx5-input-counter`](https://aur.archlinux.org/packages/fcitx5-input-counter) with an AUR helper, for example:
 
 ```sh
 paru -S fcitx5-input-counter
@@ -69,8 +55,7 @@ paru -S fcitx5-input-counter
 
 ### From source
 
-The addon library must be installed in an Fcitx addon directory. A normal
-system installation uses:
+The addon library must be installed in an Fcitx addon directory. A normal system installation uses:
 
 ```sh
 sudo cmake --install build
