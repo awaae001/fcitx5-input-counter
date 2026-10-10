@@ -4,15 +4,15 @@ English | [简体中文](README.zh-CN.md)
 
 An Fcitx5 addon that counts committed Unicode extended grapheme clusters and stores hourly totals in a local SQLite database.
 
-The addon adds an `Input Counter` button to the Fcitx status area. Clicking it opens a Qt viewer window that shows totals (total / today / last 24 hours / last 7 days) and bar charts for the last 24 hours, 7 days, 30 days, 12 months, or all recorded years. Seven-day data uses six-hour bars. A custom chart accepts a start time, end time, and scale from one hour through one month. The viewer can also clear all recorded statistics. A Simplified Chinese translation is included.
+The addon adds an `Input Counter` button to the Fcitx status area. Clicking it opens a Qt viewer window that shows totals (total / today / last 24 hours / last 7 days) and bar charts for the last 24 hours, 7 days, 30 days, 12 months, or all recorded years.Seven-day data uses six-hour bars.
+
+A custom chart accepts a start time, end time, and scale from one hour through one month. The viewer can also clear all recorded statistics.
 
 ## Scope
 
 - Counts `InputContextCommitString` and `InputContextCommitStringWithCursor` events emitted by Fcitx input methods.
 - Counts printable keys that Fcitx forwards directly to applications, including ordinary English input.
 - Counts Unicode extended grapheme clusters as defined by UAX #29 within each committed event payload, including whitespace and punctuation. For example `👨‍👩‍👧‍👦` counts as one grapheme.
-- Does not count control shortcuts or non-text keys.
-- Persists hourly totals to `$XDG_DATA_HOME/fcitx5/input-counter/stats.db` (usually `~/.local/share/fcitx5/input-counter/stats.db`).
 - Counts are buffered in memory and flushed to the database every 60 seconds, on shutdown, and whenever the statistics button is clicked.
 
 ## Game input exclusion
@@ -47,8 +47,13 @@ cmake -S . -B build -G Ninja \
 cmake --build build
 ```
 
-Build dependencies: Fcitx5Core (>= 5.1.2), ICU, SQLite3, Qt6 DBus and Widgets,
-Gettext.
+Build dependencies: Fcitx5Core and Fcitx5Utils (>= 5.1.13), ICU, SQLite3,
+Qt6 DBus and Widgets, Gettext.
+
+> [!WARNING]
+> Fcitx5 **5.1.13 or newer** is required. Distributions shipping older Fcitx5
+> (e.g. Ubuntu 24.04, Debian stable) cannot build this project; use a distro
+> with a current Fcitx5 (Arch, Fedora) or upgrade Fcitx5 first.
 
 ## Install
 

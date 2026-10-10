@@ -4,15 +4,15 @@
 
 一个 Fcitx5 插件，用于统计已提交文本中的 Unicode 扩展字素簇，并将每小时的统计总数保存到本地 SQLite 数据库。
 
-插件会在 Fcitx 状态栏添加一个“输入计数器”按钮。点击后打开 Qt 统计窗口，显示总计、今日、最近 24 小时和最近 7 天的输入量，以及最近 24 小时、7 天、30 天、12 个月或所有记录年份的柱状图。最近 7 天的图表按每 6 小时分组。自定义图表支持指定开始时间、结束时间，以及从小时到月的统计粒度。窗口也支持清空全部统计记录。界面提供简体中文翻译。
+插件会在 Fcitx 状态栏添加一个“输入计数器”按钮。点击后打开 Qt 统计窗口，显示总计、今日、最近 24 小时和最近 7 天的输入量，以及最近 24 小时、7 天、30 天、12 个月或所有记录年份的柱状图。最近 7 天的图表按每 6 小时分组。
+
+自定义图表支持指定开始时间、结束时间，以及从小时到月的统计粒度。窗口也支持清空全部统计记录。
 
 ## 统计范围
 
 - 统计 Fcitx 输入法发出的 `InputContextCommitString` 和 `InputContextCommitStringWithCursor` 事件。
 - 统计 Fcitx 直接传递给应用的可打印按键，包括普通英文直输。
 - 对每个提交事件的文本，按 UAX #29 定义的 Unicode 扩展字素簇计数，包括空白字符和标点。例如，`👨‍👩‍👧‍👦` 计为一个字素簇。
-- 不统计控制快捷键和非文本按键。
-- 每小时的统计总数保存在 `$XDG_DATA_HOME/fcitx5/input-counter/stats.db`，通常为 `~/.local/share/fcitx5/input-counter/stats.db`。
 - 计数先缓存在内存中，每 60 秒、插件关闭时，以及点击统计按钮时写入数据库。
 
 ## 游戏输入排除
@@ -39,7 +39,11 @@ cmake -S . -B build -G Ninja \
 cmake --build build
 ```
 
-构建依赖：Fcitx5Core（>= 5.1.2）、ICU、SQLite3、Qt6 DBus 和 Widgets，以及 Gettext。
+构建依赖：Fcitx5Core 和 Fcitx5Utils（>= 5.1.13）、ICU、SQLite3、Qt6 DBus 和
+Widgets，以及 Gettext。
+
+> [!WARNING]
+> 需要 Fcitx5 **5.1.13 或更高版本**。自带旧版 Fcitx5 的发行版（例如 Ubuntu 24.04、Debian stable）无法编译本项目，请使用提供新版 Fcitx5 的发行版（Arch、Fedora 等）或先升级 Fcitx5。
 
 ## 安装
 
