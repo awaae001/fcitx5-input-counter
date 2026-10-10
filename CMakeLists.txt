@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.21)
 
 project(
     fcitx5-input-counter
-    VERSION 0.2.3
+    VERSION 0.3.1
     LANGUAGES CXX
 )
 
@@ -16,18 +16,18 @@ find_package(Fcitx5ModuleNotifications REQUIRED)
 find_package(Gettext REQUIRED)
 find_package(ICU REQUIRED COMPONENTS i18n uc)
 find_package(SQLite3 REQUIRED)
-find_package(Qt6 REQUIRED COMPONENTS DBus Widgets)
+find_package(Qt6 REQUIRED COMPONENTS DBus Widgets Core)
 
 include("${FCITX_INSTALL_CMAKECONFIG_DIR}/Fcitx5Utils/Fcitx5CompilerSettings.cmake")
 include("${FCITX_INSTALL_CMAKECONFIG_DIR}/Fcitx5Utils/Fcitx5Macros.cmake")
 
-set(INPUT_COUNTER_VIEWER_PATH
-    "${FCITX_INSTALL_BINDIR}/fcitx5-input-counter-viewer")
+
+set(INPUT_COUNTER_VIEWER_PATH "${FCITX_INSTALL_BINDIR}/fcitx5-input-counter-viewer")
 
 file(READ "${CMAKE_CURRENT_SOURCE_DIR}/sql/schema.sql" INPUT_COUNTER_SCHEMA_SQL)
-set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/sql/schema.sql")
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/sql/schema.sql")
 configure_file(src/embedded_sql.h.in embedded_sql.h @ONLY)
+configure_file(inputcounter.conf.in inputcounter.conf @ONLY)
 
 add_library(inputcounter MODULE
     src/database_manager.cpp
@@ -46,7 +46,7 @@ target_link_libraries(inputcounter PRIVATE
     Fcitx5::Module::Notifications
     ICU::i18n
     ICU::uc
-    SQLite::SQLite3
+    SQLite3::SQLite3
 )
 target_compile_definitions(inputcounter PRIVATE
     FCITX_GETTEXT_DOMAIN="fcitx5-input-counter"
@@ -65,8 +65,7 @@ add_executable(fcitx5-input-counter-viewer
     src/viewer/statistics_client.cpp
     src/viewer/statistics_snapshot.cpp
 )
-target_include_directories(fcitx5-input-counter-viewer PRIVATE
-    "${CMAKE_CURRENT_BINARY_DIR}")
+target_include_directories(fcitx5-input-counter-viewer PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
 target_link_libraries(fcitx5-input-counter-viewer PRIVATE
     Fcitx5::Utils
     Qt6::DBus
@@ -77,87 +76,49 @@ target_compile_definitions(fcitx5-input-counter-viewer PRIVATE
     INPUT_COUNTER_LOCALEDIR="${FCITX_INSTALL_LOCALEDIR}"
 )
 
-configure_file(inputcounter.conf.in inputcounter.conf @ONLY)
-
 install(TARGETS inputcounter DESTINATION "${FCITX_INSTALL_LIBDIR}/fcitx5")
-install(TARGETS fcitx5-input-counter-viewer
-    DESTINATION "${FCITX_INSTALL_BINDIR}"
-)
-install(
-    FILES "${CMAKE_CURRENT_BINARY_DIR}/inputcounter.conf"
-    DESTINATION "${FCITX_INSTALL_PKGDATADIR}/addon"
-)
-
-# Desktop entry + icon so Wayland compositors can resolve the viewer's
-# window icon via its app id (fcitx5-input-counter-viewer).
-install(
-    FILES data/fcitx5-input-counter-viewer.desktop
-    DESTINATION "${FCITX_INSTALL_DATADIR}/applications"
-)
-install(
-    FILES data/fcitx5-input-counter.svg
-    DESTINATION "${FCITX_INSTALL_DATADIR}/icons/hicolor/scalable/apps"
-)
+install(TARGETS fcitx5-input-counter-viewer DESTINATION "${FCITX_INSTALL_BINDIR}")
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/inputcounter.conf" DESTINATION "${FCITX_INSTALL_PKGDATADIR}/addon")
+install(FILES data/fcitx5-input-counter-viewer.desktop DESTINATION "${FCITX_INSTALL_DATADIR}/applications")
+install(FILES data/fcitx5-input-counter.svg DESTINATION "${FCITX_INSTALL_DATADIR}/icons/hicolor/scalable/apps")
 
 include(CTest)
 if(BUILD_TESTING)
-    add_executable(game-filter-test tests/game_filter_test.cpp src/steam_games.cpp)
-    target_include_directories(game-filter-test PRIVATE src)
-    target_link_libraries(game-filter-test PRIVATE Fcitx5::Utils)
-    add_test(NAME game-filter-test COMMAND game-filter-test)
+    function(add_input_counter_test _name)
+        cmake_parse_arguments(ARG "" "" "SOURCES;LIBS;INCLUDES" ${ARGN})
+        add_executable(${_name} ${ARG_SOURCES})
+        target_include_directories(${_name} PRIVATE src ${ARG_INCLUDES})
+        target_link_libraries(${_name} PRIVATE ${ARG_LIBS})
+        add_test(NAME ${_name} COMMAND ${_name})
+    endfunction()
 
-    add_executable(text-counter-test
-        src/text_counter.cpp
-        tests/text_counter_test.cpp
+    add_input_counter_test(game-filter-test
+        SOURCES tests/game_filter_test.cpp src/steam_games.cpp
+        LIBS    Fcitx5::Utils
     )
-    target_include_directories(text-counter-test PRIVATE src)
-    target_link_libraries(text-counter-test PRIVATE
-        Fcitx5::Utils
-        ICU::i18n
-        ICU::uc
-    )
-    add_test(NAME text-counter-test COMMAND text-counter-test)
 
-    add_executable(database-manager-test
-        src/database_manager.cpp
-        tests/database_manager_test.cpp
+    add_input_counter_test(text-counter-test
+        SOURCES src/text_counter.cpp tests/text_counter_test.cpp
+        LIBS    Fcitx5::Utils ICU::i18n ICU::uc
     )
-    target_include_directories(database-manager-test PRIVATE
-        "${CMAKE_CURRENT_BINARY_DIR}"
-        src
-    )
-    target_link_libraries(database-manager-test PRIVATE
-        Fcitx5::Utils
-        SQLite::SQLite3
-    )
-    add_test(NAME database-manager-test COMMAND database-manager-test)
 
-    add_executable(statistics-backend-test
-        src/database_manager.cpp
-        src/statistics_backend.cpp
-        tests/statistics_backend_test.cpp
+    add_input_counter_test(database-manager-test
+        SOURCES  src/database_manager.cpp tests/database_manager_test.cpp
+        INCLUDES "${CMAKE_CURRENT_BINARY_DIR}"
+        LIBS     Fcitx5::Utils SQLite3::SQLite3
     )
-    target_include_directories(statistics-backend-test PRIVATE
-        "${CMAKE_CURRENT_BINARY_DIR}"
-        src
-    )
-    target_link_libraries(statistics-backend-test PRIVATE
-        Fcitx5::Utils
-        SQLite::SQLite3
-    )
-    add_test(NAME statistics-backend-test COMMAND statistics-backend-test)
 
-    add_executable(statistics-snapshot-test
-        src/viewer/chart_range.cpp
-        src/viewer/statistics_snapshot.cpp
-        tests/statistics_snapshot_test.cpp
+    add_input_counter_test(statistics-backend-test
+        SOURCES  src/database_manager.cpp src/statistics_backend.cpp tests/statistics_backend_test.cpp
+        INCLUDES "${CMAKE_CURRENT_BINARY_DIR}"
+        LIBS     Fcitx5::Utils SQLite3::SQLite3
     )
-    target_include_directories(statistics-snapshot-test PRIVATE
-        src
-        src/viewer
+
+    add_input_counter_test(statistics-snapshot-test
+        SOURCES  src/viewer/chart_range.cpp src/viewer/statistics_snapshot.cpp tests/statistics_snapshot_test.cpp
+        INCLUDES src/viewer
+        LIBS     Qt6::Core
     )
-    target_link_libraries(statistics-snapshot-test PRIVATE Qt6::Core)
-    add_test(NAME statistics-snapshot-test COMMAND statistics-snapshot-test)
 endif()
 
 add_subdirectory(po)
