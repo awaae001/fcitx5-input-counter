@@ -5,7 +5,6 @@
 #include "input_counter_dbus.h"
 
 #include <exception>
-#include <stdexcept>
 
 #include <fcitx-utils/dbus/objectvtable.h>
 
@@ -18,8 +17,6 @@ namespace inputcounter
   {
     constexpr char kUnavailableError[] =
         "org.fcitx.Fcitx.InputCounter1.Error.DataUnavailable";
-    constexpr char kInvalidArgumentsError[] =
-        "org.freedesktop.DBus.Error.InvalidArgs";
 
     template <typename Function>
     auto translateErrors(Function &&function)
@@ -27,10 +24,6 @@ namespace inputcounter
       try
       {
         return function();
-      }
-      catch (const std::invalid_argument &error)
-      {
-        throw fcitx::dbus::MethodCallError(kInvalidArgumentsError, error.what());
       }
       catch (const std::exception &error)
       {

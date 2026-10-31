@@ -6,8 +6,6 @@
 
 #include <ctime>
 #include <exception>
-#include <stdexcept>
-#include <utility>
 #include <vector>
 
 #include <fcitx-utils/dbus/bus.h>
@@ -16,7 +14,6 @@
 #include <fcitx-utils/key.h>
 #include <fcitx-utils/log.h>
 #include <fcitx-utils/misc.h>
-#include <fcitx-utils/utf8.h>
 #include <fcitx/addonmanager.h>
 #include <fcitx/event.h>
 #include <fcitx/inputcontext.h>
@@ -42,53 +39,18 @@ namespace inputcounter
     constexpr std::uint64_t kFlushIntervalUsec = 60 * 1000 * 1000;
     constexpr std::uint64_t kGamePollIntervalUsec = 3 * 1000 * 1000;
 
-    fcitx::Instance *requireInstance(fcitx::AddonManager *manager)
-    {
-      auto *instance = manager == nullptr ? nullptr : manager->instance();
-      if (instance == nullptr)
-      {
-        throw std::invalid_argument("inputcounter requires a live Fcitx instance");
-      }
-      return instance;
-    }
-
   } // namespace
 
   InputCounterAddon::InputCounterAddon(fcitx::AddonManager *manager)
-      : instance_(requireInstance(manager))
+      : instance_(manager->instance()),
+        database_(std::make_unique<DatabaseManager>()),
+        statistics_(std::make_unique<StatisticsBackend>(*database_)),
+        dbusObject_(std::make_unique<InputCounterDBus>(*statistics_))
   {
     settings_.reload();
-    try
-    {
-      auto database = std::make_unique<DatabaseManager>();
-      auto statistics = std::make_unique<StatisticsBackend>(*database);
-      database_ = std::move(database);
-      statistics_ = std::move(statistics);
-    }
-    catch (const std::exception &error)
-    {
-      FCITX_ERROR() << "inputcounter could not open the statistics database: "
-                    << error.what();
-      throw;
-    }
-
-    dbusObject_ = std::make_unique<InputCounterDBus>(*statistics_);
     notifications_ = manager->addon("notifications", true);
-    if (notifications_ == nullptr)
-    {
-      throw std::runtime_error(
-          "inputcounter could not load the notifications addon");
-    }
-    auto *dbusAddon = manager->addon("dbus");
-    auto *bus = dbusAddon == nullptr ? nullptr
-                                     : dbusAddon->call<fcitx::IDBusModule::bus>();
-    if (bus == nullptr ||
-        !bus->addObjectVTable("/inputcounter", "org.fcitx.Fcitx.InputCounter1",
-                              *dbusObject_))
-    {
-      throw std::runtime_error(
-          "inputcounter could not register its D-Bus interface");
-    }
+    manager->addon("dbus")->call<fcitx::IDBusModule::bus>()->addObjectVTable(
+        "/inputcounter", "org.fcitx.Fcitx.InputCounter1", *dbusObject_);
 
     action_.setIcon("view-statistics");
     action_.setShortText(_("Input Counter"));
@@ -102,11 +64,23 @@ namespace inputcounter
         });
 
     auto &uiManager = instance_->userInterfaceManager();
-    if (!action_.registerAction("inputcounter", &uiManager))
-    {
-      throw std::runtime_error(
-          "inputcounter could not register its status action");
-    }
+    action_.registerAction("inputcounter", &uiManager);
+
+    pauseAction_.setIcon("media-playback-pause");
+    pauseAction_.setShortText(_("Pause counting"));
+    pauseAction_.setLongText(
+        _("Temporarily stop counting input; the pause state is kept in memory "
+          "only and resets when Fcitx restarts."));
+    pauseAction_.connect<fcitx::SimpleAction::Activated>(
+        [this](fcitx::InputContext *)
+        {
+          paused_ = !paused_;
+          pauseAction_.setIcon(paused_ ? "media-playback-start"
+                                       : "media-playback-pause");
+          pauseAction_.setShortText(paused_ ? _("Resume counting")
+                                            : _("Pause counting"));
+        });
+    pauseAction_.registerAction("inputcounter-pause", &uiManager);
 
     instance_->inputContextManager().foreach (
         [this](fcitx::InputContext *inputContext)
@@ -146,14 +120,7 @@ namespace inputcounter
         CLOCK_MONOTONIC, fcitx::now(CLOCK_MONOTONIC) + kGamePollIntervalUsec,
         0, [this](fcitx::EventSourceTime *, std::uint64_t)
         {
-          try
-          {
-            refreshSteamGames();
-          }
-          catch (const std::exception &error)
-          {
-            FCITX_WARN() << "inputcounter game poll failed: " << error.what();
-          }
+          refreshSteamGames();
           gamePollEvent_->setNextInterval(kGamePollIntervalUsec);
           // sd-event time sources are one-shot; re-arm after each fire.
           gamePollEvent_->setOneShot();
@@ -185,14 +152,11 @@ namespace inputcounter
   InputCounterAddon::~InputCounterAddon()
   {
     *notificationCallbacksAlive_ = false;
-    if (notifications_ != nullptr)
+    for (const auto &[id, notification] : gamePromptNotifications_)
     {
-      for (const auto &[id, notification] : gamePromptNotifications_)
-      {
-        (void)id;
-        notifications_->call<fcitx::INotifications::closeNotification>(
-            notification);
-      }
+      (void)id;
+      notifications_->call<fcitx::INotifications::closeNotification>(
+          notification);
     }
     flush();
   }
@@ -211,18 +175,10 @@ namespace inputcounter
 
   void InputCounterAddon::count(std::string_view text)
   {
-    const auto codePoints =
-        text.empty() ? 0 : fcitx::utf8::lengthValidated(text);
-    if (codePoints == fcitx::utf8::INVALID_LENGTH)
-    {
-      FCITX_WARN() << "inputcounter ignored invalid text";
-      return;
-    }
-    if (codePoints == 0)
+    if (paused_ || text.empty())
     {
       return;
     }
-
     database_->recordChars(
         static_cast<std::int64_t>(std::time(nullptr)),
         static_cast<std::uint64_t>(textCounter_.count(text)));
@@ -237,9 +193,10 @@ namespace inputcounter
     for (const auto &[id, programs] : games)
     {
       detected.insert(id);
+      const auto name = steamGameName(id);
       if (detectedSteamGames_.count(id) == 0)
-        notifySteamGameStarted(id, steamGameName(id));
-      changed |= settings_.updateSteamGame(id, steamGameName(id), programs);
+        notifySteamGameStarted(id, name);
+      changed |= settings_.updateSteamGame(id, name, programs);
       if (*settings_.steamGameExclusion)
       {
         if (settings_.steamGameConfirmed(id) &&
@@ -250,26 +207,15 @@ namespace inputcounter
       }
     }
     detectedSteamGames_ = detected;
-    const bool active = !running.empty();
-    if (active != steamGameRunning_)
-      steamGameRunning_ = active;
+    steamGameRunning_ = !running.empty();
     gamePrograms_ = settings_.steamGamePrograms(running);
-    if (changed && !settings_.saveKnownSteamGames())
-    {
-      FCITX_WARN() << "inputcounter could not save Steam game list";
-      settings_.reloadKnownSteamGames();
-    }
+    if (changed)
+      settings_.saveKnownSteamGames();
   }
 
   void InputCounterAddon::notifySteamGameStarted(const std::string &id,
                                                  const std::string &name)
   {
-    if (notifications_ == nullptr)
-    {
-      FCITX_WARN() << "inputcounter cannot notify game start: notifications "
-                      "addon unavailable";
-      return;
-    }
     const auto displayName = name.empty() ? std::string("Steam App ") + id
                                           : name;
     const auto body = _("Detected that {0} (AppID: {1}) has started.",
@@ -285,12 +231,6 @@ namespace inputcounter
   {
     if (pendingGamePrompts_.count(id) != 0)
       return;
-    if (notifications_ == nullptr)
-    {
-      FCITX_WARN() << "inputcounter cannot prompt for game verdict: "
-                      "notifications addon unavailable";
-      return;
-    }
     pendingGamePrompts_.insert(id);
     const auto displayName = name.empty() ? std::string("Steam App ") + id
                                           : name;
@@ -325,8 +265,7 @@ namespace inputcounter
   void InputCounterAddon::confirmSteamGame(const std::string &id)
   {
     settings_.confirmSteamGame(id);
-    if (!settings_.saveKnownSteamGames())
-      FCITX_WARN() << "inputcounter could not save confirmed Steam game";
+    settings_.saveKnownSteamGames();
     pendingGamePrompts_.erase(id);
     gamePromptNotifications_.erase(id);
     refreshSteamGames();
@@ -335,8 +274,7 @@ namespace inputcounter
   void InputCounterAddon::ignoreSteamGame(const std::string &id)
   {
     settings_.ignoreSteamGame(id);
-    if (!settings_.saveKnownSteamGames())
-      FCITX_WARN() << "inputcounter could not save ignored Steam game";
+    settings_.saveKnownSteamGames();
     pendingGamePrompts_.erase(id);
     gamePromptNotifications_.erase(id);
     refreshSteamGames();
@@ -350,6 +288,7 @@ namespace inputcounter
         steamGameRunning_, *settings_.steamUnknownProgramFallback);
   }
 
+  /// Persistence failures must never take down Fcitx; keep counts pending.
   void InputCounterAddon::flush()
   {
     try
@@ -367,6 +306,7 @@ namespace inputcounter
   {
     auto &statusArea = inputContext->statusArea();
     statusArea.addAction(fcitx::StatusGroup::AfterInputMethod, &action_);
+    statusArea.addAction(fcitx::StatusGroup::AfterInputMethod, &pauseAction_);
   }
 
 } // namespace inputcounter

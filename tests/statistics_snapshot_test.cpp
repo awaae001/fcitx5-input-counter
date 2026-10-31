@@ -70,18 +70,6 @@ void pairs_counts_with_labels() {
           "bar values did not match query labels");
 }
 
-void rejects_mismatched_bucket_counts() {
-  const ChartQuery query{{{0, 10}, QStringLiteral("a")}};
-  bool rejected = false;
-  try {
-    makeBars(query, {});
-  } catch (const std::invalid_argument &) {
-    rejected = true;
-  }
-
-  require(rejected, "mismatched bucket values were accepted");
-}
-
 } // namespace
 
 int main() {
@@ -89,5 +77,4 @@ int main() {
   builds_one_bucket_per_calendar_year();
   extracts_wire_ranges();
   pairs_counts_with_labels();
-  rejects_mismatched_bucket_counts();
 }

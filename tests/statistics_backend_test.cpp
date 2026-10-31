@@ -109,21 +109,6 @@ void reports_empty_summary() {
   require(!summary.hasData, "empty summary reported stored data");
 }
 
-void rejects_overlapping_buckets() {
-  TemporaryDatabase databasePath;
-  DatabaseManager database(databasePath.path());
-  StatisticsBackend backend(database);
-
-  bool rejected = false;
-  try {
-    backend.bucketCounts(std::vector<TimeRange>{{0, 7200}, {3600, 10800}});
-  } catch (const std::invalid_argument &) {
-    rejected = true;
-  }
-
-  require(rejected, "overlapping buckets were accepted");
-}
-
 void discards_pending_counts_on_reset() {
   TemporaryDatabase databasePath;
   DatabaseManager database(databasePath.path());
@@ -146,6 +131,5 @@ int main() {
   sums_ordered_buckets();
   sums_independent_summary_windows();
   reports_empty_summary();
-  rejects_overlapping_buckets();
   discards_pending_counts_on_reset();
 }

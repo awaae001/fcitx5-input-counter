@@ -114,7 +114,7 @@ FCITX_CONFIGURATION(
     return programs;
   }
 
-  bool saveKnownSteamGames() const { return fcitx::safeSaveAsIni(knownSteamGames_, kKnownGamesPath); }
+  void saveKnownSteamGames() const { fcitx::safeSaveAsIni(knownSteamGames_, kKnownGamesPath); }
 
   void reloadKnownSteamGames() {
     knownSteamGames_ = fcitx::RawConfig();

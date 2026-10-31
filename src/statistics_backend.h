@@ -29,9 +29,7 @@ namespace inputcounter
 
     /// Flushes pending counts and sums each ordered, non-overlapping range.
     ///
-    /// At most kMaximumStatisticsBuckets ranges are accepted. Throws
-    /// std::invalid_argument if a range is empty, reversed, or overlaps its
-    /// predecessor.
+    /// Throws std::invalid_argument for more than kMaximumStatisticsBuckets.
     std::vector<std::uint64_t> bucketCounts(const std::vector<TimeRange> &ranges);
 
     /// Deletes persisted and pending statistics.

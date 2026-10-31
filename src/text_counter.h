@@ -37,10 +37,9 @@ public:
   /// control characters do not represent committed text and return `nullopt`.
   static std::optional<std::string> textForKey(const fcitx::Key &key);
 
-  /// Counts Unicode extended grapheme clusters in valid UTF-8 text.
+  /// Counts Unicode extended grapheme clusters in UTF-8 text.
   ///
-  /// The caller must validate UTF-8 first. Throws `std::runtime_error` when
-  /// ICU cannot attach the text to the iterator.
+  /// Ill-formed sequences are read by ICU as U+FFFD.
   std::size_t count(std::string_view text);
 
 private:

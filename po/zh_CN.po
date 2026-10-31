@@ -26,6 +26,17 @@ msgstr "Steam 运行状态兜底"
 msgid "Use Steam game running status when the input program cannot be identified."
 msgstr "无法识别输入程序时，使用 Steam 游戏运行状态作为过滤依据。"
 
+msgid "Pause counting"
+msgstr "暂停计数"
+
+msgid "Resume counting"
+msgstr "恢复计数"
+
+msgid ""
+"Temporarily stop counting input; the pause state is kept in memory only and "
+"resets when Fcitx restarts."
+msgstr "临时停止统计输入；暂停状态仅保存在内存中，重启 Fcitx 后恢复。"
+
 msgid "Is this a game?"
 msgstr "这是游戏吗？"
 

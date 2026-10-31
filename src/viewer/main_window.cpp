@@ -4,7 +4,6 @@
 
 #include "main_window.h"
 
-#include <exception>
 #include <memory>
 #include <utility>
 #include <variant>
@@ -82,10 +81,6 @@ namespace inputcounter
 
   void MainWindow::refresh()
   {
-    if (ui_ == nullptr)
-    {
-      return;
-    }
     if (operationPending_)
     {
       refreshQueued_ = true;
@@ -136,15 +131,9 @@ namespace inputcounter
             return;
           }
 
-          try {
-            selected.widget->setData(makeBars(
-                selected.query,
-                std::get<std::vector<std::uint64_t>>(std::move(bucketResult))));
-          } catch (const std::exception &) {
-            setUnavailable();
-            finishOperation();
-            return;
-          }
+          selected.widget->setData(makeBars(
+              selected.query,
+              std::get<std::vector<std::uint64_t>>(std::move(bucketResult))));
 
           ui_->totalValue.setText(format(summary.total));
           ui_->todayValue.setText(format(summary.today));
@@ -161,11 +150,6 @@ namespace inputcounter
 
   void MainWindow::editCustomRange()
   {
-    if (ui_ == nullptr)
-    {
-      return;
-    }
-
     const bool showingCustom =
         ui_->chartStack.currentWidget() == &ui_->customChart;
     auto selected = chooseCustomRange(*this, customRange_.get());
@@ -184,7 +168,7 @@ namespace inputcounter
 
   void MainWindow::confirmReset()
   {
-    if (ui_ == nullptr || operationPending_ || !available_)
+    if (operationPending_ || !available_)
     {
       return;
     }

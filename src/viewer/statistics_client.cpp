@@ -72,15 +72,6 @@ namespace inputcounter
           QString::fromLatin1(kInterface), QString::fromLatin1(method));
     }
 
-    QString errorText(const QDBusMessage &reply)
-    {
-      if (!reply.errorMessage().isEmpty())
-      {
-        return reply.errorMessage();
-      }
-      return QStringLiteral("D-Bus request failed");
-    }
-
   } // namespace
 
   StatisticsClient::StatisticsClient(QObject *parent) : QObject(parent)
@@ -105,31 +96,22 @@ namespace inputcounter
             [callback =
                  std::move(callback)](QDBusPendingCallWatcher *watcher) mutable
             {
+              watcher->deleteLater();
               const auto reply = watcher->reply();
               if (reply.type() == QDBusMessage::ErrorMessage)
               {
-                callback(errorText(reply));
+                callback(reply.errorMessage());
+                return;
               }
-              else
-              {
-                const auto arguments = reply.arguments();
-                if (arguments.size() != 6)
-                {
-                  callback(QStringLiteral("Invalid GetSummary response"));
-                }
-                else
-                {
-                  callback(StatisticsSummary{
-                      arguments[0].toULongLong(),
-                      arguments[1].toULongLong(),
-                      arguments[2].toULongLong(),
-                      arguments[3].toULongLong(),
-                      arguments[4].toBool(),
-                      arguments[5].toLongLong(),
-                  });
-                }
-              }
-              watcher->deleteLater();
+              const auto arguments = reply.arguments();
+              callback(StatisticsSummary{
+                  arguments[0].toULongLong(),
+                  arguments[1].toULongLong(),
+                  arguments[2].toULongLong(),
+                  arguments[3].toULongLong(),
+                  arguments[4].toBool(),
+                  arguments[5].toLongLong(),
+              });
             });
   }
 
@@ -152,36 +134,24 @@ namespace inputcounter
             [callback =
                  std::move(callback)](QDBusPendingCallWatcher *finished) mutable
             {
+              finished->deleteLater();
               const auto reply = finished->reply();
               if (reply.type() == QDBusMessage::ErrorMessage)
               {
-                callback(errorText(reply));
+                callback(reply.errorMessage());
+                return;
               }
-              else
+              auto dbusArgument = reply.arguments()[0].value<QDBusArgument>();
+              std::vector<std::uint64_t> result;
+              dbusArgument.beginArray();
+              while (!dbusArgument.atEnd())
               {
-                const auto arguments = reply.arguments();
-                if (arguments.size() != 1 ||
-                    !arguments[0].canConvert<QDBusArgument>())
-                {
-                  callback(
-                      QStringLiteral("Invalid GetBucketCounts response"));
-                }
-                else
-                {
-                  auto dbusArgument = arguments[0].value<QDBusArgument>();
-                  std::vector<std::uint64_t> result;
-                  dbusArgument.beginArray();
-                  while (!dbusArgument.atEnd())
-                  {
-                    qulonglong value = 0;
-                    dbusArgument >> value;
-                    result.push_back(value);
-                  }
-                  dbusArgument.endArray();
-                  callback(std::move(result));
-                }
+                qulonglong value = 0;
+                dbusArgument >> value;
+                result.push_back(value);
               }
-              finished->deleteLater();
+              dbusArgument.endArray();
+              callback(std::move(result));
             });
   }
 
@@ -199,7 +169,7 @@ namespace inputcounter
               finished->deleteLater();
               if (reply.type() == QDBusMessage::ErrorMessage)
               {
-                callback(errorText(reply));
+                callback(reply.errorMessage());
                 return;
               }
               callback(std::monostate{});

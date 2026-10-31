@@ -8,16 +8,18 @@
 #include <fcitx/addonfactory.h>
 #include <fcitx/addonmanager.h>
 
-namespace inputcounter {
+namespace inputcounter
+{
 
-/// Creates input-counter addon instances for Fcitx.
-class InputCounterAddonFactory final : public fcitx::AddonFactory {
-public:
-  fcitx::AddonInstance *create(fcitx::AddonManager *manager) override {
-    fcitx::registerDomain("fcitx5-input-counter", FCITX_INSTALL_LOCALEDIR);
-    return new InputCounterAddon(manager);
-  }
-};
+  class InputCounterAddonFactory final : public fcitx::AddonFactory
+  {
+  public:
+    fcitx::AddonInstance *create(fcitx::AddonManager *manager) override
+    {
+      fcitx::registerDomain("fcitx5-input-counter", FCITX_INSTALL_LOCALEDIR);
+      return new InputCounterAddon(manager);
+    }
+  };
 
 } // namespace inputcounter
 

@@ -69,6 +69,9 @@ private:
   std::unique_ptr<DatabaseManager> database_;
   std::unique_ptr<StatisticsBackend> statistics_;
   fcitx::SimpleAction action_;
+  fcitx::SimpleAction pauseAction_;
+  /// In-memory only: pauses counting until toggled off or Fcitx restarts.
+  bool paused_ = false;
   std::unique_ptr<fcitx::EventSourceTime> flushEvent_;
   std::unique_ptr<fcitx::EventSourceTime> gamePollEvent_;
   std::unique_ptr<fcitx::HandlerTableEntry<fcitx::EventHandler>>

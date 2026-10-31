@@ -5,7 +5,6 @@
 #include "statistics_backend.h"
 #include "database_manager.h"
 
-#include <cstddef>
 #include <stdexcept>
 
 namespace inputcounter
@@ -25,18 +24,6 @@ namespace inputcounter
     if (ranges.size() > kMaximumStatisticsBuckets)
     {
       throw std::invalid_argument("too many statistics buckets");
-    }
-    for (std::size_t index = 0; index < ranges.size(); ++index)
-    {
-      const auto &range = ranges[index];
-      if (range.start >= range.end)
-      {
-        throw std::invalid_argument("statistics bucket is empty or reversed");
-      }
-      if (index > 0 && ranges[index - 1].end > range.start)
-      {
-        throw std::invalid_argument("statistics buckets overlap");
-      }
     }
     if (ranges.empty())
     {

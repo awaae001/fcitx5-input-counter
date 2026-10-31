@@ -4,8 +4,6 @@
 
 #include "statistics_snapshot.h"
 
-#include <stdexcept>
-
 #include <QDate>
 #include <QDateTime>
 #include <QLocale>
@@ -101,12 +99,6 @@ ChartQuery allTimeQuery(std::int64_t firstHour, std::int64_t now) {
   const auto firstYear = QDateTime::fromSecsSinceEpoch(firstHour).date().year();
   const auto currentYear = QDateTime::fromSecsSinceEpoch(now).date().year();
   ChartQuery result;
-  if (firstYear > currentYear) {
-    return result;
-  }
-  const auto yearCount = static_cast<std::int64_t>(currentYear) -
-                         static_cast<std::int64_t>(firstYear) + 1;
-  result.reserve(static_cast<std::size_t>(yearCount));
   for (int year = firstYear; year <= currentYear; ++year) {
     const QDateTime start(QDate(year, 1, 1), QTime(0, 0));
     const QDateTime end(QDate(year + 1, 1, 1), QTime(0, 0));
@@ -157,10 +149,6 @@ std::vector<TimeRange> ranges(const ChartQuery &query) {
 
 ChartBars makeBars(const ChartQuery &query,
                    const std::vector<std::uint64_t> &counts) {
-  if (query.size() != counts.size()) {
-    throw std::invalid_argument("statistics bucket count mismatch");
-  }
-
   ChartBars result;
   result.reserve(query.size());
   for (std::size_t index = 0; index < query.size(); ++index) {

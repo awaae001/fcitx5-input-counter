@@ -2,7 +2,6 @@
 #include "steam_games.h"
 
 #include <algorithm>
-#include <charconv>
 #include <regex>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -26,9 +25,6 @@ namespace inputcounter
     std::string readBounded(const std::filesystem::path &path, std::size_t limit)
     {
       auto file = fcitx::StandardPaths::openPath(path);
-      if (!file.isValid())
-        return {};
-
       std::string result(limit, '\0');
       std::size_t offset = 0;
       while (offset < limit)
@@ -102,12 +98,7 @@ namespace inputcounter
         add(fcitx::fs::baseName(command.substr(0, command.find('\0'))));
         if (proc == "/proc")
         {
-          pid_t pid = 0;
-          const auto [end, conversionError] = std::from_chars(
-              filename.data(), filename.data() + filename.size(), pid);
-          if (conversionError == std::errc{} &&
-              end == filename.data() + filename.size())
-            add(fcitx::getProcessName(pid));
+          add(fcitx::getProcessName(std::stoi(filename)));
         }
         else if (const auto executable =
                      fcitx::fs::readlink((it->path() / "exe").string()))
@@ -147,13 +138,10 @@ namespace inputcounter
 
   std::string steamGameName(const std::string &id)
   {
-    if (!validId(id))
-      return {};
-    std::set<std::filesystem::path> roots;
-    const auto &data = fcitx::StandardPaths::global().userDirectory(
-        fcitx::StandardPathsType::Data);
-    if (!data.empty())
-      roots.emplace(data / "Steam");
+    std::set<std::filesystem::path> roots{
+        fcitx::StandardPaths::global().userDirectory(
+            fcitx::StandardPathsType::Data) /
+        "Steam"};
     if (const auto home = fcitx::getEnvironment("HOME"))
     {
       roots.emplace(std::filesystem::path(*home) / ".local/share/Steam");

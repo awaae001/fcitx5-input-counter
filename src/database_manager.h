@@ -10,9 +10,11 @@
 #include <string>
 #include <vector>
 
-#include "statistics_types.h"
+#include <sqlite3.h>
 
-struct sqlite3;
+#include <fcitx-utils/misc.h>
+
+#include "statistics_types.h"
 
 namespace inputcounter
 {
@@ -31,12 +33,6 @@ namespace inputcounter
 
     /// Opens the statistics database at path.
     explicit DatabaseManager(const std::string &path);
-
-    /// Closes the owned SQLite connection.
-    ~DatabaseManager();
-
-    DatabaseManager(const DatabaseManager &) = delete;
-    DatabaseManager &operator=(const DatabaseManager &) = delete;
 
     /// Adds chars to the pending bucket containing unixSeconds.
     void recordChars(std::int64_t unixSeconds, std::uint64_t chars);
@@ -61,7 +57,7 @@ namespace inputcounter
   private:
     void persistChars(std::int64_t hourStart, std::uint64_t chars);
 
-    sqlite3 *db_ = nullptr;
+    fcitx::UniqueCPtr<sqlite3, sqlite3_close> db_;
     std::map<std::int64_t, std::uint64_t> pending_;
   };
 

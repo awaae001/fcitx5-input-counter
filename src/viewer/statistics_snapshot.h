@@ -49,9 +49,6 @@ namespace inputcounter
   std::vector<TimeRange> ranges(const ChartQuery &query);
 
   /// Pairs returned bucket counts with their query labels.
-  ///
-  /// Throws std::invalid_argument when the result cardinality does not match the
-  /// query cardinality.
   ChartBars makeBars(const ChartQuery &query,
                      const std::vector<std::uint64_t> &counts);
 
